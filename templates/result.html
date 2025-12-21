@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kết quả tính toán</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 40px; }
+    .card { max-width: 960px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; }
+    h1 { margin-top: 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; }
+    th { background: #f9fafb; }
+    .amount { text-align: right; }
+    a.btn { display: inline-block; margin-top: 12px; padding: 8px 12px; background: #111827; color: #fff; border-radius: 8px; text-decoration: none; }
+    a.btn:hover { background: #374151; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Tổng kết cho {{ totals.person }} - {{ totals.base_name }}</h1>
+
+    <h2>Tổng cộng</h2>
+    <ul>
+      <li>Phần liên quan: <strong>{{ totals.total_shared }}</strong> VND</li>
+      <li>Đã trả: <strong>{{ totals.total_paid_by_person }}</strong> VND</li>
+      <li>Còn nợ: <strong>{{ totals.remaining }}</strong> VND</li>
+      <li>Cutoff: {{ totals.cutoff or '—' }}</li>
+    </ul>
+
+    <h3>Tải xuống kết quả</h3>
+    <p>
+      {% for fmt in available_exports %}
+        <a class="btn" href="/export/{{ fmt }}?file={{ params.file }}&uploaded={{ params.uploaded }}&person={{ params.person }}&paid_on={{ params.paid_on }}&start={{ params.start }}">Tải {{ fmt|upper }}</a>
+      {% endfor %}
+    </p>
+
+    <h2>Chi tiết phần liên quan</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Ngày</th>
+          <th>Danh mục</th>
+          <th>Ghi chú</th>
+          <th class="amount">Amount</th>
+          <th class="amount">Share</th>
+          <th>Lý do</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in shared_rows %}
+          <tr>
+            <td>{{ r.date }}</td>
+            <td>{{ r.category }}</td>
+            <td>{{ r.note }}</td>
+            <td class="amount">{{ r.amount }}</td>
+            <td class="amount">{{ r.share }}</td>
+            <td>{{ r.reason }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <h2>Khoản đã trả (áp dụng)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Ngày</th>
+          <th>Danh mục</th>
+          <th>Ghi chú</th>
+          <th class="amount">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in applied_payments %}
+          <tr>
+            <td>{{ r.date }}</td>
+            <td>{{ r.category }}</td>
+            <td>{{ r.note }}</td>
+            <td class="amount">{{ r.amount }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <h2>Khoản không áp dụng (trước cutoff)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Ngày</th>
+          <th>Danh mục</th>
+          <th>Ghi chú</th>
+          <th class="amount">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in unapplied_payments %}
+          <tr>
+            <td>{{ r.date }}</td>
+            <td>{{ r.category }}</td>
+            <td>{{ r.note }}</td>
+            <td class="amount">{{ r.amount }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <p><a class="btn" href="/">↩️ Quay lại</a></p>
+  </div>
+</body>
+</html>

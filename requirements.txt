@@ -1,0 +1,8 @@
+Flask>=3.0.0
+# Production servers
+gunicorn>=21.2.0; platform_system != "Windows"
+waitress>=2.1.2; platform_system == "Windows"
+
+# Optional export libs
+openpyxl>=3.1.3; platform_system == "Windows"
+reportlab>=4.0.5; platform_system == "Windows"
