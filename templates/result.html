@@ -5,29 +5,77 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Kết quả tính toán</title>
     <style>
+      :root {
+        --bg: #ffffff;
+        --fg: #111827;
+        --muted: #6b7280;
+        --border: #e5e7eb;
+        --accent: #111827;
+        --accent-hover: #374151;
+      }
+      * {
+        box-sizing: border-box;
+      }
       body {
         font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial,
           sans-serif;
-        margin: 40px;
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+      }
+      .wrap {
+        padding: 24px;
       }
       .card {
-        max-width: 960px;
+        max-width: 1100px;
         margin: 0 auto;
         padding: 24px;
-        border: 1px solid #e5e7eb;
+        border: 1px solid var(--border);
         border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
       }
       h1 {
         margin-top: 0;
+        font-size: 22px;
+      }
+      a.btn {
+        display: inline-block;
+        margin-top: 12px;
+        padding: 10px 14px;
+        background: var(--accent);
+        color: #fff;
+        border-radius: 10px;
+        text-decoration: none;
+      }
+      a.btn:hover {
+        background: var(--accent-hover);
+      }
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        list-style: none;
+        padding: 0;
+      }
+      .summary li {
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+      }
+      .table-wrap {
+        width: 100%;
+        overflow-x: auto;
       }
       table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 16px;
+        margin-top: 12px;
+        min-width: 680px;
       }
       th,
       td {
-        border: 1px solid #e5e7eb;
+        border: 1px solid var(--border);
         padding: 8px;
         text-align: left;
       }
@@ -37,114 +85,133 @@
       .amount {
         text-align: right;
       }
-      a.btn {
-        display: inline-block;
-        margin-top: 12px;
-        padding: 8px 12px;
-        background: #111827;
-        color: #fff;
-        border-radius: 8px;
-        text-decoration: none;
-      }
-      a.btn:hover {
-        background: #374151;
+      @media (max-width: 640px) {
+        .wrap {
+          padding: 16px;
+        }
+        .card {
+          padding: 16px;
+        }
+        h1 {
+          font-size: 20px;
+        }
+        .summary {
+          grid-template-columns: 1fr;
+        }
+        th,
+        td {
+          padding: 6px;
+          font-size: 14px;
+        }
       }
     </style>
   </head>
   <body>
-    <div class="card">
-      <h1>Tổng kết cho {{ totals.person }} - {{ totals.base_name }}</h1>
+    <div class="wrap">
+      <div class="card">
+        <h1>Tổng kết cho {{ totals.person }} - {{ totals.base_name }}</h1>
 
-      <h2>Tổng cộng</h2>
-      <ul>
-        <li>Phần liên quan: <strong>{{ totals.total_shared }}</strong> VND</li>
-        <li>Đã trả: <strong>{{ totals.total_paid_by_person }}</strong> VND</li>
-        <li>Còn nợ: <strong>{{ totals.remaining }}</strong> VND</li>
-        <li>Cutoff: {{ totals.cutoff or '—' }}</li>
-      </ul>
+        <h2>Tổng cộng</h2>
+        <ul class="summary">
+          <li>
+            Phần liên quan: <strong>{{ totals.total_shared }}</strong> VND
+          </li>
+          <li>
+            Đã trả: <strong>{{ totals.total_paid_by_person }}</strong> VND
+          </li>
+          <li>Còn nợ: <strong>{{ totals.remaining }}</strong> VND</li>
+          <li>Cutoff: {{ totals.cutoff or '—' }}</li>
+        </ul>
 
-      <h3>Tải xuống kết quả</h3>
-      <p>
-        {% for fmt in available_exports %}
-        <a
-          class="btn"
-          href="/export/{{ fmt }}?file={{ params.file }}&uploaded={{ params.uploaded }}&person={{ params.person }}&paid_on={{ params.paid_on }}&start={{ params.start }}"
-          >Tải {{ fmt|upper }}</a
-        >
-        {% endfor %}
-      </p>
-
-      <h2>Chi tiết phần liên quan</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Ngày</th>
-            <th>Danh mục</th>
-            <th>Ghi chú</th>
-            <th class="amount">Amount</th>
-            <th class="amount">Share</th>
-            <th>Lý do</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for r in shared_rows %}
-          <tr>
-            <td>{{ r.date }}</td>
-            <td>{{ r.category }}</td>
-            <td>{{ r.note }}</td>
-            <td class="amount">{{ r.amount }}</td>
-            <td class="amount">{{ r.share }}</td>
-            <td>{{ r.reason }}</td>
-          </tr>
+        <h3>Tải xuống kết quả</h3>
+        <p>
+          {% for fmt in available_exports %}
+          <a
+            class="btn"
+            href="/export/{{ fmt }}?file={{ params.file }}&uploaded={{ params.uploaded }}&person={{ params.person }}&paid_on={{ params.paid_on }}&start={{ params.start }}"
+            >Tải {{ fmt|upper }}</a
+          >
           {% endfor %}
-        </tbody>
-      </table>
+        </p>
 
-      <h2>Khoản đã trả (áp dụng)</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Ngày</th>
-            <th>Danh mục</th>
-            <th>Ghi chú</th>
-            <th class="amount">Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for r in applied_payments %}
-          <tr>
-            <td>{{ r.date }}</td>
-            <td>{{ r.category }}</td>
-            <td>{{ r.note }}</td>
-            <td class="amount">{{ r.amount }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+        <h2>Chi tiết phần liên quan</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Ngày</th>
+                <th>Danh mục</th>
+                <th>Ghi chú</th>
+                <th class="amount">Amount</th>
+                <th class="amount">Share</th>
+                <th>Lý do</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in shared_rows %}
+              <tr>
+                <td>{{ r.date }}</td>
+                <td>{{ r.category }}</td>
+                <td>{{ r.note }}</td>
+                <td class="amount">{{ r.amount }}</td>
+                <td class="amount">{{ r.share }}</td>
+                <td>{{ r.reason }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
 
-      <h2>Khoản không áp dụng (trước cutoff)</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Ngày</th>
-            <th>Danh mục</th>
-            <th>Ghi chú</th>
-            <th class="amount">Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for r in unapplied_payments %}
-          <tr>
-            <td>{{ r.date }}</td>
-            <td>{{ r.category }}</td>
-            <td>{{ r.note }}</td>
-            <td class="amount">{{ r.amount }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+        <h2>Khoản đã trả (áp dụng)</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Ngày</th>
+                <th>Danh mục</th>
+                <th>Ghi chú</th>
+                <th class="amount">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in applied_payments %}
+              <tr>
+                <td>{{ r.date }}</td>
+                <td>{{ r.category }}</td>
+                <td>{{ r.note }}</td>
+                <td class="amount">{{ r.amount }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
 
-      <p><a class="btn" href="/">↩️ Quay lại</a></p>
+        <h2>Khoản không áp dụng (trước cutoff)</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Ngày</th>
+                <th>Danh mục</th>
+                <th>Ghi chú</th>
+                <th class="amount">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in unapplied_payments %}
+              <tr>
+                <td>{{ r.date }}</td>
+                <td>{{ r.category }}</td>
+                <td>{{ r.note }}</td>
+                <td class="amount">{{ r.amount }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <p><a class="btn" href="/">↩️ Quay lại</a></p>
+      </div>
     </div>
   </body>
 </html>
