@@ -7,11 +7,15 @@
     <style>
       :root {
         --bg: #ffffff;
+        --bg-alt: #f8fafc;
         --fg: #111827;
         --muted: #6b7280;
         --border: #e5e7eb;
-        --accent: #111827;
-        --accent-hover: #374151;
+        --accent: #2563eb; /* blue-600 */
+        --accent-hover: #1d4ed8; /* blue-700 */
+        --positive: #16a34a; /* green-600 */
+        --warning: #f59e0b; /* amber-500 */
+        --danger: #dc2626; /* red-600 */
       }
       * {
         box-sizing: border-box;
@@ -43,13 +47,22 @@
         display: inline-block;
         margin-top: 12px;
         padding: 10px 14px;
-        background: var(--accent);
+        background: linear-gradient(135deg, var(--accent), var(--accent-hover));
         color: #fff;
-        border-radius: 10px;
+        border-radius: 9999px;
         text-decoration: none;
+        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+        transition: transform 0.08s ease-out, box-shadow 0.2s ease;
       }
       a.btn:hover {
-        background: var(--accent-hover);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 14px rgba(29, 78, 216, 0.3);
+      }
+      .accent-bar {
+        height: 4px;
+        background: var(--accent);
+        border-radius: 9999px;
+        margin: 6px 0 16px;
       }
       .summary {
         display: grid;
@@ -80,10 +93,38 @@
         text-align: left;
       }
       th {
-        background: #f9fafb;
+        background: var(--bg-alt);
+      }
+      tbody tr:nth-child(odd) {
+        background: #fbfdff;
+      }
+      tbody tr:hover {
+        background: #f3f4f6;
+      }
+      .table-wrap table.sticky thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
       }
       .amount {
         text-align: right;
+      }
+      .search-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 8px 0 4px;
+      }
+      .search-bar input {
+        flex: 1;
+        padding: 10px 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        font-size: 16px;
+      }
+      .note {
+        color: var(--muted);
+        font-size: 14px;
       }
       @media (max-width: 640px) {
         .wrap {
@@ -109,7 +150,27 @@
   <body>
     <div class="wrap">
       <div class="card">
-        <h1>Tổng kết cho {{ totals.person }} - {{ totals.base_name }}</h1>
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+          "
+        >
+          <h1 style="margin: 0">
+            Tổng kết cho {{ totals.person }} - {{ totals.base_name }}
+          </h1>
+          <button
+            id="themeToggle"
+            class="btn"
+            type="button"
+            title="Chuyển chế độ sáng/tối"
+          >
+            🌙/☀️
+          </button>
+        </div>
+        <div class="accent-bar"></div>
 
         <h2>Tổng cộng</h2>
         <ul class="summary">
@@ -126,24 +187,53 @@
         <h3>Tải xuống kết quả</h3>
         <p>
           {% for fmt in available_exports %}
-          <a
-            class="btn"
-            href="/export/{{ fmt }}?file={{ params.file }}&uploaded={{ params.uploaded }}&person={{ params.person }}&paid_on={{ params.paid_on }}&start={{ params.start }}"
+          <a class="btn btn-export" data-fmt="{{ fmt }}" href="#"
             >Tải {{ fmt|upper }}</a
           >
           {% endfor %}
         </p>
+        <h3>Tìm kiếm giao dịch</h3>
+        <div class="search-bar">
+          <input
+            id="searchBox"
+            type="search"
+            placeholder="Nhập từ khoá để lọc trong bảng…"
+          />
+          <span id="searchCount" class="note"></span>
+        </div>
+        <div
+          class="row"
+          style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px"
+        >
+          <div>
+            <label for="start_date">Từ ngày</label>
+            <input id="start_date" type="date" />
+          </div>
+          <div>
+            <label for="end_date">Đến ngày</label>
+            <input id="end_date" type="date" />
+          </div>
+          <div>
+            <label for="category">Danh mục</label>
+            <select id="category">
+              <option value="">-- Tất cả --</option>
+              {% for c in categories %}
+              <option value="{{ c }}">{{ c }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
 
         <h2>Chi tiết phần liên quan</h2>
         <div class="table-wrap">
-          <table>
+          <table id="sharedTable" class="sticky">
             <thead>
               <tr>
-                <th>Ngày</th>
-                <th>Danh mục</th>
-                <th>Ghi chú</th>
-                <th class="amount">Amount</th>
-                <th class="amount">Share</th>
+                <th data-type="date">Ngày</th>
+                <th data-type="string">Danh mục</th>
+                <th data-type="string">Ghi chú</th>
+                <th class="amount" data-type="number">Amount</th>
+                <th class="amount" data-type="number">Share</th>
                 <th>Lý do</th>
               </tr>
             </thead>
@@ -164,13 +254,13 @@
 
         <h2>Khoản đã trả (áp dụng)</h2>
         <div class="table-wrap">
-          <table>
+          <table id="appliedTable" class="sticky">
             <thead>
               <tr>
-                <th>Ngày</th>
+                <th data-type="date">Ngày</th>
                 <th>Danh mục</th>
                 <th>Ghi chú</th>
-                <th class="amount">Amount</th>
+                <th class="amount" data-type="number">Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -188,13 +278,13 @@
 
         <h2>Khoản không áp dụng (trước cutoff)</h2>
         <div class="table-wrap">
-          <table>
+          <table id="unappliedTable" class="sticky">
             <thead>
               <tr>
-                <th>Ngày</th>
+                <th data-type="date">Ngày</th>
                 <th>Danh mục</th>
                 <th>Ghi chú</th>
-                <th class="amount">Amount</th>
+                <th class="amount" data-type="number">Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -213,5 +303,165 @@
         <p><a class="btn" href="/">↩️ Quay lại</a></p>
       </div>
     </div>
+    <script>
+      (function () {
+        // Build export links with current filters
+        const baseParams = {
+          file: "{{ params.file }}",
+          uploaded: "{{ params.uploaded }}",
+          person: "{{ params.person }}",
+          paid_on: "{{ params.paid_on }}",
+          start: "{{ params.start }}",
+        };
+        const exportBtns = Array.from(document.querySelectorAll(".btn-export"));
+        const qEl = document.getElementById("searchBox");
+        const sEl = document.getElementById("start_date");
+        const eEl = document.getElementById("end_date");
+        const catEl = document.getElementById("category");
+        function updateExportLinks() {
+          exportBtns.forEach((a) => {
+            const fmt = a.getAttribute("data-fmt");
+            const params = new URLSearchParams(baseParams);
+            if (qEl && qEl.value) params.set("q", qEl.value);
+            if (sEl && sEl.value) params.set("start_date", sEl.value);
+            if (eEl && eEl.value) params.set("end_date", eEl.value);
+            if (catEl && catEl.value) params.set("category", catEl.value);
+            a.href = "/export/" + fmt + "?" + params.toString();
+          });
+        }
+        updateExportLinks();
+        ["input", "change"].forEach((evt) => {
+          if (qEl) qEl.addEventListener(evt, updateExportLinks);
+          if (sEl) sEl.addEventListener(evt, updateExportLinks);
+          if (eEl) eEl.addEventListener(evt, updateExportLinks);
+          if (catEl) catEl.addEventListener(evt, updateExportLinks);
+        });
+        // Theme toggle
+        const body = document.body;
+        const themeKey = "thu-chi-theme";
+        const saved = localStorage.getItem(themeKey);
+        if (saved) {
+          body.setAttribute("data-theme", saved);
+        } else {
+          if (
+            window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches
+          ) {
+            body.setAttribute("data-theme", "dark");
+          }
+        }
+        const toggleBtn = document.getElementById("themeToggle");
+        if (toggleBtn) {
+          toggleBtn.addEventListener("click", function () {
+            const cur =
+              body.getAttribute("data-theme") === "dark" ? "light" : "dark";
+            body.setAttribute("data-theme", cur);
+            localStorage.setItem(themeKey, cur);
+          });
+        }
+        const q = document.getElementById("searchBox");
+        const countEl = document.getElementById("searchCount");
+        const tables = ["sharedTable", "appliedTable", "unappliedTable"]
+          .map((id) => document.getElementById(id))
+          .filter(Boolean);
+        function filter() {
+          const term = (q.value || "").toLowerCase();
+          let visible = 0;
+          tables.forEach((tbl) => {
+            const body = tbl.tBodies[0];
+            if (!body) return;
+            const rows = body.rows;
+            for (let i = 0; i < rows.length; i++) {
+              const cells = rows[i].cells;
+              let match = term === "";
+              if (!match) {
+                for (let j = 0; j < cells.length; j++) {
+                  const txt = (cells[j].textContent || "").toLowerCase();
+                  if (txt.includes(term)) {
+                    match = true;
+                    break;
+                  }
+                }
+              }
+              rows[i].style.display = match ? "" : "none";
+              if (match) visible++;
+            }
+          });
+          if (countEl) {
+            countEl.textContent = term ? `Kết quả hiển thị: ${visible}` : "";
+          }
+        }
+        if (q) {
+          q.addEventListener("input", filter);
+        }
+
+        // Copy remaining button
+        const copyBtn = document.createElement("button");
+        copyBtn.textContent = "📋 Copy số còn nợ";
+        copyBtn.className = "btn";
+        const summaryList = document.querySelector(".summary");
+        if (summaryList) {
+          summaryList.parentNode.insertBefore(copyBtn, summaryList.nextSibling);
+          copyBtn.addEventListener("click", () => {
+            const remainingItem = Array.from(summaryList.children).find((li) =>
+              li.textContent.includes("Còn nợ")
+            );
+            const text = remainingItem
+              ? remainingItem.textContent.replace(/[^0-9.]/g, "").trim()
+              : "";
+            navigator.clipboard
+              .writeText(text || "{{ totals.remaining }}")
+              .then(() => {
+                copyBtn.textContent = "✅ Đã copy";
+                setTimeout(
+                  () => (copyBtn.textContent = "📋 Copy số còn nợ"),
+                  1500
+                );
+              });
+          });
+        }
+
+        // Column sorting
+        function parseVal(type, text) {
+          const t = (text || "").trim();
+          if (type === "number") {
+            const n = Number(t.replace(/[^0-9.-]/g, ""));
+            return isNaN(n) ? 0 : n;
+          }
+          if (type === "date") {
+            const d = new Date(t);
+            return d.getTime() || 0;
+          }
+          return t.toLowerCase();
+        }
+        function makeSortable(tbl) {
+          const thead = tbl.tHead;
+          if (!thead) return;
+          const headers = thead.rows[0].cells;
+          for (let i = 0; i < headers.length; i++) {
+            const th = headers[i];
+            th.style.cursor = "pointer";
+            th.title = "Nhấn để sắp xếp";
+            let asc = true;
+            th.addEventListener("click", function () {
+              const type = th.getAttribute("data-type") || "string";
+              const rows = Array.from(tbl.tBodies[0].rows);
+              rows.sort((a, b) => {
+                const av = parseVal(type, a.cells[i]?.textContent);
+                const bv = parseVal(type, b.cells[i]?.textContent);
+                if (av < bv) return asc ? -1 : 1;
+                if (av > bv) return asc ? 1 : -1;
+                return 0;
+              });
+              asc = !asc;
+              const frag = document.createDocumentFragment();
+              rows.forEach((r) => frag.appendChild(r));
+              tbl.tBodies[0].appendChild(frag);
+            });
+          }
+        }
+        tables.forEach(makeSortable);
+      })();
+    </script>
   </body>
 </html>

@@ -10,8 +10,17 @@
         --fg: #111827;
         --muted: #6b7280;
         --border: #e5e7eb;
-        --accent: #111827;
-        --accent-hover: #374151;
+        --accent: #2563eb;
+        --accent-hover: #1d4ed8;
+      }
+      /* Dark theme variables */
+      body[data-theme="dark"] {
+        --bg: #0b1220;
+        --fg: #e5e7eb;
+        --muted: #94a3b8;
+        --border: #1f2937;
+        --accent: #60a5fa;
+        --accent-hover: #3b82f6;
       }
       * {
         box-sizing: border-box;
@@ -34,6 +43,10 @@
         border-radius: 12px;
         background: #fff;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      }
+      body[data-theme="dark"] .card {
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        background: #0f172a;
       }
       h1 {
         margin-top: 0;
@@ -60,15 +73,18 @@
       button {
         margin-top: 18px;
         padding: 12px 18px;
-        background: var(--accent);
+        background: linear-gradient(135deg, var(--accent), var(--accent-hover));
         color: #fff;
         border: none;
-        border-radius: 10px;
+        border-radius: 9999px;
         cursor: pointer;
         font-size: 16px;
+        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+        transition: transform 0.08s ease-out, box-shadow 0.2s ease;
       }
       button:hover {
-        background: var(--accent-hover);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 14px rgba(29, 78, 216, 0.3);
       }
       .note {
         color: var(--muted);
@@ -96,7 +112,24 @@
   <body>
     <div class="wrap">
       <div class="card">
-        <h1>Web tính nợ từ CSV</h1>
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+          "
+        >
+          <h1 style="margin: 0">Web tính nợ từ CSV</h1>
+          <button
+            id="themeToggle"
+            class="btn"
+            type="button"
+            title="Chuyển chế độ sáng/tối"
+          >
+            🌙/☀️
+          </button>
+        </div>
         <p class="note">
           Chọn file CSV trong thư mục <strong>Transactions</strong> và điền tuỳ
           chọn.
@@ -131,5 +164,31 @@
         </form>
       </div>
     </div>
+    <script>
+      (function () {
+        const body = document.body;
+        const themeKey = "thu-chi-theme";
+        const saved = localStorage.getItem(themeKey);
+        if (saved) {
+          body.setAttribute("data-theme", saved);
+        } else {
+          if (
+            window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches
+          ) {
+            body.setAttribute("data-theme", "dark");
+          }
+        }
+        const toggleBtn = document.getElementById("themeToggle");
+        if (toggleBtn) {
+          toggleBtn.addEventListener("click", function () {
+            const cur =
+              body.getAttribute("data-theme") === "dark" ? "light" : "dark";
+            body.setAttribute("data-theme", cur);
+            localStorage.setItem(themeKey, cur);
+          });
+        }
+      })();
+    </script>
   </body>
 </html>

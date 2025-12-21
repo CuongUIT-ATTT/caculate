@@ -110,6 +110,19 @@ def compute():
         'start': start or '',
     }
 
+    # Collect categories for filter
+    categories = set()
+    for r in data['shared_rows']:
+        if r.get('category'):
+            categories.add(r['category'])
+    for r in data['applied_payments']:
+        if r.get('category'):
+            categories.add(r['category'])
+    for r in data['unapplied_payments']:
+        if r.get('category'):
+            categories.add(r['category'])
+    categories = sorted(categories)
+
     return render_template(
         'result.html',
         totals=totals,
@@ -118,6 +131,7 @@ def compute():
         unapplied_payments=data['unapplied_payments'],
         available_exports=available_exports,
         params=params,
+        categories=categories,
     )
 
 
@@ -135,6 +149,10 @@ def export(fmt: str):
     person = (request.args.get('person') or 'Quân').strip()
     paid_on = (request.args.get('paid_on') or None)
     start = (request.args.get('start') or None)
+    q = (request.args.get('q') or '').strip().lower()
+    start_date = (request.args.get('start_date') or '').strip()
+    end_date = (request.args.get('end_date') or '').strip()
+    category = (request.args.get('category') or '').strip()
 
     if not file_name:
         return redirect(url_for('index'))
@@ -146,29 +164,85 @@ def export(fmt: str):
     data = compute_summary(csv_path, person=person, paid_on=paid_on, start=start)
     base_name = os.path.splitext(os.path.basename(file_name))[0]
 
+    # Filtering helpers
+    def in_range(date_str):
+        if not (start_date or end_date):
+            return True
+        try:
+            dt = datetime.fromisoformat(date_str.split('+')[0])
+            d = dt.date()
+        except Exception:
+            return False
+        if start_date:
+            try:
+                s = datetime.strptime(start_date, '%Y-%m-%d').date()
+                if d < s:
+                    return False
+            except Exception:
+                pass
+        if end_date:
+            try:
+                e = datetime.strptime(end_date, '%Y-%m-%d').date()
+                if d > e:
+                    return False
+            except Exception:
+                pass
+        return True
+
+    def matches_q_row(row_dict):
+        if not q:
+            return True
+        for key in ('date','category','note','amount','share','reason'):
+            val = str(row_dict.get(key, '')).lower()
+            if q in val:
+                return True
+        return False
+
+    def matches_q_pay(row_dict):
+        if not q:
+            return True
+        for key in ('date','category','note','amount'):
+            val = str(row_dict.get(key, '')).lower()
+            if q in val:
+                return True
+        return False
+
+    def matches_category(cat):
+        if not category:
+            return True
+        return (cat or '').lower() == category.lower()
+
+    # Apply filters
+    filtered = {
+        'shared_rows': [r for r in data['shared_rows'] if in_range(r['date']) and matches_category(r['category']) and matches_q_row(r)],
+        'applied_payments': [r for r in data['applied_payments'] if in_range(r['date']) and matches_category(r['category']) and matches_q_pay(r)],
+        'unapplied_payments': [r for r in data['unapplied_payments'] if in_range(r['date']) and matches_category(r['category']) and matches_q_pay(r)],
+        'totals': data['totals'],
+    }
+
     if fmt == 'csv':
         bio = io.StringIO()
         w = csv.writer(bio)
         w.writerow(['section', 'date', 'category', 'note', 'amount', 'share', 'reason'])
-        for r in data['shared_rows']:
+        for r in filtered['shared_rows']:
             w.writerow(['shared', r['date'], r['category'], r['note'], r['amount'], r['share'], r['reason']])
         w.writerow([])
         w.writerow(['applied_payment', 'date', 'category', 'note', 'amount'])
-        for r in data['applied_payments']:
+        for r in filtered['applied_payments']:
             w.writerow(['applied', r['date'], r['category'], r['note'], r['amount']])
         w.writerow([])
         w.writerow(['unapplied_payment', 'date', 'category', 'note', 'amount'])
-        for r in data['unapplied_payments']:
+        for r in filtered['unapplied_payments']:
             w.writerow(['unapplied', r['date'], r['category'], r['note'], r['amount']])
         w.writerow([])
-        w.writerow(['total_shared', data['totals']['total_shared']])
-        w.writerow(['total_paid_by_person', data['totals']['total_paid_by_person']])
-        w.writerow(['remaining', data['totals']['remaining']])
+        w.writerow(['total_shared', filtered['totals']['total_shared']])
+        w.writerow(['total_paid_by_person', filtered['totals']['total_paid_by_person']])
+        w.writerow(['remaining', filtered['totals']['remaining']])
         bytes_io = io.BytesIO(bio.getvalue().encode('utf-8'))
         return send_file(bytes_io, as_attachment=True, download_name=f"{base_name}.{person}.summary.csv", mimetype='text/csv')
 
     if fmt == 'json':
-        content = json.dumps(data, ensure_ascii=False, indent=2)
+        content = json.dumps(filtered, ensure_ascii=False, indent=2)
         bytes_io = io.BytesIO(content.encode('utf-8'))
         return send_file(bytes_io, as_attachment=True, download_name=f"{base_name}.{person}.summary.json", mimetype='application/json')
 
@@ -176,25 +250,25 @@ def export(fmt: str):
         lines = []
         lines.append(f"# Summary for {person} - {base_name}\n\n")
         lines.append('## Totals\n')
-        lines.append(f"- Total shared: {data['totals']['total_shared']}\n")
-        lines.append(f"- Total paid by {person}: {data['totals']['total_paid_by_person']}\n")
-        lines.append(f"- Remaining: {data['totals']['remaining']}\n\n")
+        lines.append(f"- Total shared: {filtered['totals']['total_shared']}\n")
+        lines.append(f"- Total paid by {person}: {filtered['totals']['total_paid_by_person']}\n")
+        lines.append(f"- Remaining: {filtered['totals']['remaining']}\n\n")
         lines.append('## Shared rows\n\n')
         lines.append('| date | category | note | amount | share | reason |\n')
         lines.append('|---|---|---|---:|---:|---|\n')
-        for r in data['shared_rows']:
+        for r in filtered['shared_rows']:
             note = (r['note'] or '').replace('|', '\\|')
             lines.append(f"| {r['date']} | {r['category']} | {note} | {r['amount']} | {r['share']} | {r['reason']} |\n")
         lines.append('\n## Applied payments\n\n')
         lines.append('| date | category | note | amount |\n')
         lines.append('|---|---|---|---:|\n')
-        for r in data['applied_payments']:
+        for r in filtered['applied_payments']:
             note = (r['note'] or '').replace('|', '\\|')
             lines.append(f"| {r['date']} | {r['category']} | {note} | {r['amount']} |\n")
         lines.append('\n## Unapplied payments\n\n')
         lines.append('| date | category | note | amount |\n')
         lines.append('|---|---|---|---:|\n')
-        for r in data['unapplied_payments']:
+        for r in filtered['unapplied_payments']:
             note = (r['note'] or '').replace('|', '\\|')
             lines.append(f"| {r['date']} | {r['category']} | {note} | {r['amount']} |\n")
         bytes_io = io.BytesIO(''.join(lines).encode('utf-8'))
@@ -205,20 +279,20 @@ def export(fmt: str):
         ws = wb.active
         ws.title = 'shared'
         ws.append(['date', 'category', 'note', 'amount', 'share', 'reason'])
-        for r in data['shared_rows']:
+        for r in filtered['shared_rows']:
             ws.append([r['date'], r['category'], r['note'], r['amount'], r['share'], r['reason']])
         ws2 = wb.create_sheet('applied_payments')
         ws2.append(['date', 'category', 'note', 'amount'])
-        for r in data['applied_payments']:
+        for r in filtered['applied_payments']:
             ws2.append([r['date'], r['category'], r['note'], r['amount']])
         ws3 = wb.create_sheet('unapplied_payments')
         ws3.append(['date', 'category', 'note', 'amount'])
-        for r in data['unapplied_payments']:
+        for r in filtered['unapplied_payments']:
             ws3.append([r['date'], r['category'], r['note'], r['amount']])
         ws4 = wb.create_sheet('totals')
-        ws4.append(['total_shared', data['totals']['total_shared']])
-        ws4.append(['total_paid_by_person', data['totals']['total_paid_by_person']])
-        ws4.append(['remaining', data['totals']['remaining']])
+        ws4.append(['total_shared', filtered['totals']['total_shared']])
+        ws4.append(['total_paid_by_person', filtered['totals']['total_paid_by_person']])
+        ws4.append(['remaining', filtered['totals']['remaining']])
         bytes_io = io.BytesIO()
         wb.save(bytes_io)
         bytes_io.seek(0)
@@ -233,11 +307,11 @@ def export(fmt: str):
         c.drawString(40, y, f"Summary for {person} - {base_name}")
         y -= 24
         c.setFont('Helvetica', 10)
-        c.drawString(40, y, f"Totals: shared={data['totals']['total_shared']} paid={data['totals']['total_paid_by_person']} remaining={data['totals']['remaining']}")
+        c.drawString(40, y, f"Totals: shared={filtered['totals']['total_shared']} paid={filtered['totals']['total_paid_by_person']} remaining={filtered['totals']['remaining']}")
         y -= 24
         c.drawString(40, y, 'Shared rows:')
         y -= 18
-        for r in data['shared_rows']:
+        for r in filtered['shared_rows']:
             line = f"{r['date']} | {r['category']} | {r['note'] or ''} | amt:{r['amount']} | share:{r['share']}"
             c.drawString(40, y, line[:120])
             y -= 14
