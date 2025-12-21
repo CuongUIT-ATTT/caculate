@@ -27,11 +27,13 @@ python app.py
 ## Deploy lên Internet
 
 ### Render (đơn giản, không cần Docker)
+
 - Push toàn bộ thư mục này lên Git (GitHub/GitLab).
 - Tạo dịch vụ Web mới trên Render, chọn repo, Render sẽ đọc [render.yaml](render.yaml).
 - Render tự cài requirements và chạy `gunicorn app:app`.
 
 ### Docker (VPS, Fly.io, Railway, …)
+
 ```bash
 # Build
 docker build -t thu-chi-web:latest .
@@ -41,7 +43,9 @@ docker run -p 8000:8000 --name thu-chi --rm thu-chi-web:latest
 ```
 
 ### Heroku (nếu dùng)
+
 - App dùng [Procfile](Procfile) và [runtime.txt](runtime.txt).
+
 ```bash
 heroku create
 heroku buildpacks:set heroku/python
@@ -49,6 +53,7 @@ git push heroku main
 ```
 
 Ghi chú:
+
 - Thư mục `Uploads/` dùng để lưu file CSV tải lên, là tạm thời trên đa số hosting (ephemeral).
 - Trên Linux, nếu không cài `openpyxl/reportlab`, các nút tải XLSX/PDF sẽ ẩn (CSV/JSON/MD vẫn hoạt động).
 
@@ -62,4 +67,4 @@ Ghi chú:
 
 - Ứng dụng nạp trực tiếp hàm `compute_summary` từ file `Caculate-auto.py` nên không cần đổi tên file.
 - Các tuỳ chọn xuất (CSV/JSON/MD/XLSX/PDF) hiện chỉ có trong chế độ CLI; có thể mở rộng lên web sau.
-"# caculate" 
+  "# caculate"

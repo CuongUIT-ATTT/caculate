@@ -399,17 +399,20 @@ def main():
 						mf.write('| date | category | note | amount | share | reason |\n')
 						mf.write('|---|---|---|---:|---:|---|\n')
 						for r in data['shared_rows']:
-							mf.write(f"| {r['date']} | {r['category']} | { (r['note'] or '').replace('|', '\\|') } | {r['amount']} | {r['share']} | {r['reason']} |\n")
+							note_safe = (r['note'] or '').replace('|', '\\|')
+							mf.write(f"| {r['date']} | {r['category']} | {note_safe} | {r['amount']} | {r['share']} | {r['reason']} |\n")
 						mf.write('\n## Applied payments\n\n')
 						mf.write('| date | category | note | amount |\n')
 						mf.write('|---|---|---|---:|\n')
 						for r in data['applied_payments']:
-							mf.write(f"| {r['date']} | {r['category']} | { (r['note'] or '').replace('|', '\\|') } | {r['amount']} |\n")
+							note_safe = (r['note'] or '').replace('|', '\\|')
+							mf.write(f"| {r['date']} | {r['category']} | {note_safe} | {r['amount']} |\n")
 						mf.write('\n## Unapplied payments\n\n')
 						mf.write('| date | category | note | amount |\n')
 						mf.write('|---|---|---|---:|\n')
 						for r in data['unapplied_payments']:
-							mf.write(f"| {r['date']} | {r['category']} | { (r['note'] or '').replace('|', '\\|') } | {r['amount']} |\n")
+							note_safe = (r['note'] or '').replace('|', '\\|')
+							mf.write(f"| {r['date']} | {r['category']} | {note_safe} | {r['amount']} |\n")
 				except Exception as e:
 					print('Lỗi khi ghi Markdown:', e)
 				else:

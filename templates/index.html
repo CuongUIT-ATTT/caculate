@@ -1,53 +1,95 @@
 <!DOCTYPE html>
 <html lang="vi">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Thu chi - Tính nợ</title>
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 40px; }
-    .card { max-width: 720px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; }
-    h1 { margin-top: 0; }
-    label { display: block; margin: 12px 0 6px; font-weight: 600; }
-    input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    button { margin-top: 16px; padding: 10px 16px; background: #111827; color: #fff; border: none; border-radius: 8px; cursor: pointer; }
-    button:hover { background: #374151; }
-    .note { color: #6b7280; font-size: 14px; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h1>Web tính nợ từ CSV</h1>
-    <p class="note">Chọn file CSV trong thư mục <strong>Transactions</strong> và điền tuỳ chọn.</p>
-    <form method="post" action="/compute" enctype="multipart/form-data">
-      <label for="file">File CSV</label>
-      <select id="file" name="file" required>
-        <option value="" disabled selected>-- Chọn file --</option>
-        {% for f in files %}
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Thu chi - Tính nợ</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial,
+          sans-serif;
+        margin: 40px;
+      }
+      .card {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 24px;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+      }
+      h1 {
+        margin-top: 0;
+      }
+      label {
+        display: block;
+        margin: 12px 0 6px;
+        font-weight: 600;
+      }
+      input,
+      select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      button {
+        margin-top: 16px;
+        padding: 10px 16px;
+        background: #111827;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #374151;
+      }
+      .note {
+        color: #6b7280;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Web tính nợ từ CSV</h1>
+      <p class="note">
+        Chọn file CSV trong thư mục <strong>Transactions</strong> và điền tuỳ
+        chọn.
+      </p>
+      <form method="post" action="/compute" enctype="multipart/form-data">
+        <label for="file">File CSV</label>
+        <select id="file" name="file" required>
+          <option value="" disabled selected>-- Chọn file --</option>
+          {% for f in files %}
           <option value="{{ f }}">{{ f }}</option>
-        {% endfor %}
-      </select>
+          {% endfor %}
+        </select>
 
-      <label for="person">Tên người</label>
-      <input id="person" name="person" placeholder="Quân" value="Quân" />
+        <label for="person">Tên người</label>
+        <input id="person" name="person" placeholder="Quân" value="Quân" />
 
-      <div class="row">
-        <div>
-          <label for="paid_on">Ngày đã trả gần nhất (YYYY-MM-DD)</label>
-          <input id="paid_on" name="paid_on" placeholder="2025-11-28" />
+        <div class="row">
+          <div>
+            <label for="paid_on">Ngày đã trả gần nhất (YYYY-MM-DD)</label>
+            <input id="paid_on" name="paid_on" placeholder="2025-11-28" />
+          </div>
+          <div>
+            <label for="start">Ngày bắt đầu tính (YYYY-MM-DD)</label>
+            <input id="start" name="start" placeholder="2025-11-29" />
+          </div>
         </div>
-        <div>
-          <label for="start">Ngày bắt đầu tính (YYYY-MM-DD)</label>
-          <input id="start" name="start" placeholder="2025-11-29" />
-        </div>
-      </div>
 
-      <label for="upload">Hoặc tải lên CSV</label>
-      <input id="upload" name="upload" type="file" accept=".csv,text/csv" />
+        <label for="upload">Hoặc tải lên CSV</label>
+        <input id="upload" name="upload" type="file" accept=".csv,text/csv" />
 
-      <button type="submit">Tính toán</button>
-    </form>
-  </div>
-</body>
+        <button type="submit">Tính toán</button>
+      </form>
+    </div>
+  </body>
 </html>
