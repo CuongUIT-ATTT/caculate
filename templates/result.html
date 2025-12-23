@@ -225,7 +225,9 @@
           {% endfor %}
         </p>
         <p>
-          <button id="shareBtn" class="btn" type="button">🔗 Copy link chia sẻ</button>
+          <button id="shareBtn" class="btn" type="button">
+            🔗 Copy link chia sẻ
+          </button>
         </p>
         <h3>Tìm kiếm giao dịch</h3>
         <div class="search-bar">
@@ -407,7 +409,7 @@
           const term = (q.value || "").toLowerCase();
           const sd = sEl && sEl.value ? new Date(sEl.value) : null;
           const ed = eEl && eEl.value ? new Date(eEl.value) : null;
-          const cat = (catEl && catEl.value) ? catEl.value.toLowerCase() : "";
+          const cat = catEl && catEl.value ? catEl.value.toLowerCase() : "";
           let visible = 0;
           tables.forEach((tbl) => {
             const body = tbl.tBodies[0];
@@ -432,7 +434,7 @@
               }
               // Date range filter (1st column index 0)
               if (match && (sd || ed)) {
-                const dtxt = (cells[0]?.textContent || "");
+                const dtxt = cells[0]?.textContent || "";
                 const d = new Date(dtxt);
                 if (sd && (isNaN(d) || d < sd)) match = false;
                 if (ed && (isNaN(d) || d > ed)) match = false;
@@ -514,10 +516,16 @@
             const url = `${location.origin}/result?${params.toString()}`;
             const done = () => {
               shareBtn.textContent = "✅ Đã copy link";
-              setTimeout(() => (shareBtn.textContent = "🔗 Copy link chia sẻ"), 1500);
+              setTimeout(
+                () => (shareBtn.textContent = "🔗 Copy link chia sẻ"),
+                1500
+              );
             };
             if (navigator.clipboard && window.isSecureContext) {
-              navigator.clipboard.writeText(url).then(done).catch(() => fallbackCopy(url, done));
+              navigator.clipboard
+                .writeText(url)
+                .then(done)
+                .catch(() => fallbackCopy(url, done));
             } else {
               fallbackCopy(url, done);
             }
