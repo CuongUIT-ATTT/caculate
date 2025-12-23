@@ -172,12 +172,7 @@
         if (saved) {
           body.setAttribute("data-theme", saved);
         } else {
-          if (
-            window.matchMedia &&
-            window.matchMedia("(prefers-color-scheme: dark)").matches
-          ) {
-            body.setAttribute("data-theme", "dark");
-          }
+          body.setAttribute("data-theme", "light");
         }
         const toggleBtn = document.getElementById("themeToggle");
         if (toggleBtn) {
