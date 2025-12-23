@@ -424,7 +424,10 @@
             const value = text || "{{ totals.remaining }}";
             const done = () => {
               copyBtn.textContent = "✅ Đã copy";
-              setTimeout(() => (copyBtn.textContent = "📋 Copy số còn nợ"), 1500);
+              setTimeout(
+                () => (copyBtn.textContent = "📋 Copy số còn nợ"),
+                1500
+              );
             };
             if (navigator.clipboard && window.isSecureContext) {
               navigator.clipboard
