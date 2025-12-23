@@ -80,6 +80,32 @@ def compute():
         if not os.path.exists(csv_path):
             return redirect(url_for('index'))
 
+    params = {
+        'file': file_name,
+        'uploaded': '1' if uploaded_flag else '0',
+        'person': person,
+        'paid_on': paid_on or '',
+        'start': start or '',
+    }
+    # Redirect to shareable GET page
+    return redirect(url_for('result_view', **params))
+
+
+@app.route('/result', methods=['GET'])
+def result_view():
+    file_name = (request.args.get('file') or '').strip()
+    uploaded_flag = request.args.get('uploaded') or '0'
+    person = (request.args.get('person') or 'Quân').strip()
+    paid_on = (request.args.get('paid_on') or None)
+    start = (request.args.get('start') or None)
+
+    if not file_name:
+        return redirect(url_for('index'))
+
+    csv_path = _resolve_path(file_name, uploaded_flag)
+    if not os.path.exists(csv_path):
+        return redirect(url_for('index'))
+
     data = compute_summary(csv_path, person=person, paid_on=paid_on, start=start)
 
     # Convert to display-friendly values
@@ -102,12 +128,17 @@ def compute():
     if HAS_REPORTLAB:
         available_exports.append('pdf')
 
+    # Parameters (also keep filters for sharing)
     params = {
         'file': file_name,
-        'uploaded': '1' if uploaded_flag else '0',
+        'uploaded': uploaded_flag,
         'person': person,
         'paid_on': paid_on or '',
         'start': start or '',
+        'q': (request.args.get('q') or ''),
+        'start_date': (request.args.get('start_date') or ''),
+        'end_date': (request.args.get('end_date') or ''),
+        'category': (request.args.get('category') or ''),
     }
 
     # Collect categories for filter

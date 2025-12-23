@@ -115,6 +115,14 @@
       tbody tr:hover {
         background: #f3f4f6;
       }
+      /* Dark mode: ensure white cells use dark text for contrast */
+      body[data-theme="dark"] table tbody tr:nth-child(odd) {
+        background: #fbfdff;
+        color: #111827;
+      }
+      body[data-theme="dark"] table tbody tr:nth-child(odd) td.amount {
+        color: #111827;
+      }
       .table-wrap table.sticky thead th {
         position: sticky;
         top: 0;
@@ -135,6 +143,13 @@
         border: 1px solid #cbd5e1;
         border-radius: 10px;
         font-size: 16px;
+      }
+      /* Dark mode: inputs/selects stay white with black text for readability */
+      body[data-theme="dark"] input,
+      body[data-theme="dark"] select {
+        background: #ffffff;
+        color: #111827;
+        border-color: #cbd5e1;
       }
       .note {
         color: var(--muted);
@@ -208,6 +223,9 @@
             >Tải {{ fmt|upper }}</a
           >
           {% endfor %}
+        </p>
+        <p>
+          <button id="shareBtn" class="btn" type="button">🔗 Copy link chia sẻ</button>
         </p>
         <h3>Tìm kiếm giao dịch</h3>
         <div class="search-bar">
@@ -329,6 +347,10 @@
           person: "{{ params.person }}",
           paid_on: "{{ params.paid_on }}",
           start: "{{ params.start }}",
+          q: "{{ params.q or '' }}",
+          start_date: "{{ params.start_date or '' }}",
+          end_date: "{{ params.end_date or '' }}",
+          category: "{{ params.category or '' }}",
         };
         const exportBtns = Array.from(document.querySelectorAll(".btn-export"));
         const qEl = document.getElementById("searchBox");
@@ -346,6 +368,11 @@
             a.href = "/export/" + fmt + "?" + params.toString();
           });
         }
+        // Prefill filters from URL params
+        if (qEl && baseParams.q) qEl.value = baseParams.q;
+        if (sEl && baseParams.start_date) sEl.value = baseParams.start_date;
+        if (eEl && baseParams.end_date) eEl.value = baseParams.end_date;
+        if (catEl && baseParams.category) catEl.value = baseParams.category;
         updateExportLinks();
         ["input", "change"].forEach((evt) => {
           if (qEl) qEl.addEventListener(evt, updateExportLinks);
@@ -378,6 +405,9 @@
           .filter(Boolean);
         function filter() {
           const term = (q.value || "").toLowerCase();
+          const sd = sEl && sEl.value ? new Date(sEl.value) : null;
+          const ed = eEl && eEl.value ? new Date(eEl.value) : null;
+          const cat = (catEl && catEl.value) ? catEl.value.toLowerCase() : "";
           let visible = 0;
           tables.forEach((tbl) => {
             const body = tbl.tBodies[0];
@@ -395,6 +425,18 @@
                   }
                 }
               }
+              // Category filter (2nd column index 1)
+              if (match && cat) {
+                const rowCat = (cells[1]?.textContent || "").toLowerCase();
+                if (rowCat !== cat) match = false;
+              }
+              // Date range filter (1st column index 0)
+              if (match && (sd || ed)) {
+                const dtxt = (cells[0]?.textContent || "");
+                const d = new Date(dtxt);
+                if (sd && (isNaN(d) || d < sd)) match = false;
+                if (ed && (isNaN(d) || d > ed)) match = false;
+              }
               rows[i].style.display = match ? "" : "none";
               if (match) visible++;
             }
@@ -403,9 +445,12 @@
             countEl.textContent = term ? `Kết quả hiển thị: ${visible}` : "";
           }
         }
-        if (q) {
-          q.addEventListener("input", filter);
-        }
+        if (q) q.addEventListener("input", filter);
+        if (sEl) sEl.addEventListener("change", filter);
+        if (eEl) eEl.addEventListener("change", filter);
+        if (catEl) catEl.addEventListener("change", filter);
+        // Apply initial filter if values preset by URL
+        filter();
 
         // Copy remaining button
         const copyBtn = document.createElement("button");
@@ -455,6 +500,28 @@
           } catch (e) {
             alert("Không thể copy. Giá trị: " + value);
           }
+        }
+
+        // Share link button
+        const shareBtn = document.getElementById("shareBtn");
+        if (shareBtn) {
+          shareBtn.addEventListener("click", () => {
+            const params = new URLSearchParams(baseParams);
+            if (qEl && qEl.value) params.set("q", qEl.value);
+            if (sEl && sEl.value) params.set("start_date", sEl.value);
+            if (eEl && eEl.value) params.set("end_date", eEl.value);
+            if (catEl && catEl.value) params.set("category", catEl.value);
+            const url = `${location.origin}/result?${params.toString()}`;
+            const done = () => {
+              shareBtn.textContent = "✅ Đã copy link";
+              setTimeout(() => (shareBtn.textContent = "🔗 Copy link chia sẻ"), 1500);
+            };
+            if (navigator.clipboard && window.isSecureContext) {
+              navigator.clipboard.writeText(url).then(done).catch(() => fallbackCopy(url, done));
+            } else {
+              fallbackCopy(url, done);
+            }
+          });
         }
 
         // Column sorting
