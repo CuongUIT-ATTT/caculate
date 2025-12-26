@@ -7,10 +7,22 @@
     <style>
       :root {
         --bg: #ffffff;
+        --bg-alt: #f8fafc;
         --fg: #111827;
+        --muted: #6b7280;
         --border: #e5e7eb;
         --accent: #2563eb;
         --accent-hover: #1d4ed8;
+      }
+      /* Dark theme variables */
+      body[data-theme="dark"] {
+        --bg: #0b1220;
+        --bg-alt: #0f172a;
+        --fg: #e5e7eb;
+        --muted: #94a3b8;
+        --border: #1f2937;
+        --accent: #60a5fa;
+        --accent-hover: #3b82f6;
       }
       body {
         font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial,
@@ -31,6 +43,10 @@
         background: #fff;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
       }
+      body[data-theme="dark"] .card {
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        background: #0f172a;
+      }
       h1 {
         margin-top: 0;
         font-size: 22px;
@@ -45,6 +61,7 @@
         text-decoration: none;
         border: none;
         cursor: pointer;
+        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
       }
       .row {
         display: grid;
@@ -58,31 +75,110 @@
         border: 1px solid #cbd5e1;
         border-radius: 10px;
         font-size: 16px;
+        background: #ffffff;
+        color: #111827;
+        box-sizing: border-box;
+      }
+      /* Dark mode: inputs/selects stay white with black text for readability */
+      body[data-theme="dark"] input,
+      body[data-theme="dark"] select {
+        background: #ffffff;
+        color: #111827;
+        border-color: #cbd5e1;
+      }
+      .table-wrap {
+        overflow-x: auto;
       }
       table {
         width: 100%;
         border-collapse: collapse;
         margin-top: 12px;
-        min-width: 680px;
+        min-width: 720px;
+        table-layout: fixed;
       }
       th,
       td {
         border: 1px solid var(--border);
         padding: 8px;
         text-align: left;
+        overflow: hidden;
       }
       th {
-        background: #f8fafc;
+        background: var(--bg-alt);
       }
       .amount {
         text-align: right;
+      }
+      .cat-cell {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .cat-badge {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 14px;
+      }
+      .accent-bar {
+        height: 4px;
+        background: var(--accent);
+        border-radius: 9999px;
+        margin: 6px 0 16px;
+      }
+      .note {
+        color: var(--muted);
+        font-size: 14px;
+      }
+      @media (max-width: 640px) {
+        .wrap {
+          padding: 16px;
+        }
+        .card {
+          padding: 16px;
+        }
+        h1 {
+          font-size: 20px;
+        }
+        th,
+        td {
+          padding: 6px;
+          font-size: 14px;
+        }
+        .row {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
   </head>
   <body>
     <div class="wrap">
       <div class="card">
-        <h1>Chỉnh sửa bảng giao dịch (PDF: {{ source_pdf }})</h1>
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+          "
+        >
+          <h1 style="margin: 0">
+            Chỉnh sửa bảng giao dịch (PDF: {{ source_pdf }})
+          </h1>
+          <button
+            id="themeToggle"
+            class="btn"
+            type="button"
+            title="Chuyển chế độ sáng/tối"
+          >
+            🌙/☀️
+          </button>
+        </div>
+        <div class="accent-bar"></div>
         <form id="tableForm" method="post">
           <div class="row">
             <div>
@@ -108,32 +204,77 @@
             </button>
           </div>
 
-          <table id="editTable">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Category name</th>
-                <th>Note</th>
-                <th class="amount">Amount</th>
-                <th>Hành động</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for r in records %}
-              <tr>
-                <td><input name="date[]" value="{{ r['Date'] }}" /></td>
-                <td>
-                  <input name="category[]" value="{{ r['Category name'] }}" />
-                </td>
-                <td><input name="note[]" value="{{ r['Note'] }}" /></td>
-                <td><input name="amount[]" value="{{ r['Amount'] }}" /></td>
-                <td>
-                  <button type="button" class="btn btn-del">❌ Xoá</button>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+          <div class="row" style="margin-top: 12px">
+            <div>
+              <label for="searchBox">Tìm kiếm</label>
+              <input id="searchBox" placeholder="Nhập từ khoá để lọc…" />
+            </div>
+            <div>
+              <label for="typeFilter">Loại danh mục</label>
+              <select id="typeFilter">
+                <option value="">-- Tất cả --</option>
+                <option value="income">Thu nhập</option>
+                <option value="expense">Chi phí</option>
+              </select>
+            </div>
+            <div>
+              <label>&nbsp;</label>
+              <button type="button" class="btn" id="sortAmountAsc">
+                ⬇️ Sắp xếp Amount tăng dần
+              </button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table id="editTable">
+              <colgroup>
+                <col style="width: 16%" />
+                <col style="width: 28%" />
+                <col style="width: 30%" />
+                <col style="width: 16%" />
+                <col style="width: 10%" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Category name</th>
+                  <th>Note</th>
+                  <th class="amount" id="amountHeader" title="Nhấn để sắp xếp">
+                    Amount
+                  </th>
+                  <th>Hành động</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in records %}
+                <tr>
+                  <td><input name="date[]" value="{{ r['Date'] }}" /></td>
+                  <td>
+                    <div class="cat-cell">
+                      <span
+                        class="cat-badge"
+                        data-icon=""
+                        title="Danh mục"
+                      ></span>
+                      <select
+                        class="category-select"
+                        name="category[]"
+                        data-initial="{{ r['Category name'] }}"
+                      ></select>
+                    </div>
+                  </td>
+                  <td><input name="note[]" value="{{ r['Note'] }}" /></td>
+                  <td class="amount">
+                    <input name="amount[]" value="{{ r['Amount'] }}" />
+                  </td>
+                  <td>
+                    <button type="button" class="btn btn-del">❌ Xoá</button>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
 
           <div style="margin-top: 16px">
             <button formaction="/table/export" formmethod="post" class="btn">
@@ -149,20 +290,246 @@
     </div>
     <script>
       (function () {
+        // Theme toggle (shared key with index/result pages)
+        const body = document.body;
+        const themeKey = "thu-chi-theme";
+        const saved = localStorage.getItem(themeKey);
+        if (saved) {
+          body.setAttribute("data-theme", saved);
+        } else {
+          body.setAttribute("data-theme", "light");
+        }
+        const toggleBtn = document.getElementById("themeToggle");
+        if (toggleBtn) {
+          toggleBtn.addEventListener("click", function () {
+            const cur =
+              body.getAttribute("data-theme") === "dark" ? "light" : "dark";
+            body.setAttribute("data-theme", cur);
+            localStorage.setItem(themeKey, cur);
+          });
+        }
+
         const tbl = document.getElementById("editTable");
         const addBtn = document.getElementById("addRowBtn");
         const clearBtn = document.getElementById("clearEmptyBtn");
+        const searchBox = document.getElementById("searchBox");
+        const typeFilter = document.getElementById("typeFilter");
+        const sortAmountAscBtn = document.getElementById("sortAmountAsc");
+        const amountHeader = document.getElementById("amountHeader");
+
+        // Danh mục theo ảnh minh hoạ
+        const incomeCategories = [
+          "Business",
+          "Extra Income",
+          "Gifts",
+          "Insurance Payout",
+          "Khác",
+          "Loan",
+          "Other",
+          "Parental Leave",
+          "Salary",
+        ];
+        const expenseCategories = [
+          "Ăn uống chung với Quân",
+          "Beauty",
+          "Bills & Fees",
+          "Car",
+          "Education",
+          "Entertainment",
+          "Family & Personal",
+          "Food & Drink",
+          "Gifts",
+          "Groceries",
+          "Healthcare",
+          "Home",
+          "Khác",
+          "Other",
+          "Shopping",
+          "Sport & Hobbies",
+          "Transport",
+          "Travel",
+          "Work",
+        ];
+
+        // Biểu tượng + màu cho danh mục (emoji + màu gần giống hình)
+        const categoryMeta = {
+          // Thu nhập
+          Business: { icon: "💼", color: "#f59e0b" },
+          "Extra Income": { icon: "💰", color: "#10b981" },
+          Gifts: { icon: "🎁", color: "#22c55e" },
+          "Insurance Payout": { icon: "🛡️", color: "#60a5fa" },
+          Khác: { icon: "📦", color: "#6b7280" },
+          Loan: { icon: "🏦", color: "#ef4444" },
+          Other: { icon: "🗂️", color: "#9ca3af" },
+          "Parental Leave": { icon: "👶", color: "#f472b6" },
+          Salary: { icon: "💵", color: "#22c55e" },
+          // Chi phí
+          "Ăn uống chung với Quân": { icon: "🍽️", color: "#f97316" },
+          Beauty: { icon: "💄", color: "#ec4899" },
+          "Bills & Fees": { icon: "💳", color: "#3b82f6" },
+          Car: { icon: "🚗", color: "#60a5fa" },
+          Education: { icon: "🎓", color: "#a855f7" },
+          Entertainment: { icon: "🎮", color: "#f59e0b" },
+          "Family & Personal": { icon: "👪", color: "#06b6d4" },
+          "Food & Drink": { icon: "🍔", color: "#f97316" },
+          Groceries: { icon: "🛒", color: "#22c55e" },
+          Healthcare: { icon: "🩺", color: "#ef4444" },
+          Home: { icon: "🏠", color: "#f59e0b" },
+          Shopping: { icon: "🛍️", color: "#f472b6" },
+          "Sport & Hobbies": { icon: "⚽", color: "#06b6d4" },
+          Transport: { icon: "🚌", color: "#60a5fa" },
+          Travel: { icon: "✈️", color: "#3b82f6" },
+          Work: { icon: "💼", color: "#6b7280" },
+        };
+
+        function populateCategorySelect(sel, initial, type) {
+          // type: 'income' | 'expense' | '' (both)
+          sel.innerHTML = "";
+          const empty = document.createElement("option");
+          empty.value = "";
+          empty.textContent = "(không chọn)";
+          sel.appendChild(empty);
+
+          if (!type || type === "income") {
+            const ogIncome = document.createElement("optgroup");
+            ogIncome.label = "Thu nhập";
+            incomeCategories.forEach((c) => {
+              const o = document.createElement("option");
+              o.value = c;
+              o.textContent = c;
+              ogIncome.appendChild(o);
+            });
+            sel.appendChild(ogIncome);
+          }
+
+          if (!type || type === "expense") {
+            const ogExpense = document.createElement("optgroup");
+            ogExpense.label = "Chi phí";
+            expenseCategories.forEach((c) => {
+              const o = document.createElement("option");
+              o.value = c;
+              o.textContent = c;
+              ogExpense.appendChild(o);
+            });
+            sel.appendChild(ogExpense);
+          }
+
+          if (initial) sel.value = initial;
+        }
+
+        function parseAmount(val) {
+          const s = String(val || "").trim();
+          if (!s) return 0;
+          let t = s;
+          let neg = false;
+          if (t.startsWith("(") && t.endsWith(")")) {
+            neg = true;
+            t = t.slice(1, -1);
+          }
+          t = t.replace(/\s+/g, "").replace(/[^0-9.,-]/g, "");
+          if (t.includes(",") && t.includes(".")) {
+            if (t.lastIndexOf(",") > t.lastIndexOf(".")) {
+              t = t.replace(/\./g, "").replace(/,/g, ".");
+            } else {
+              t = t.replace(/,/g, "");
+            }
+          } else {
+            if (t.includes(",") && t.split(",").pop().length <= 3) {
+              t = t.replace(/,/g, ".");
+            } else {
+              t = t.replace(/,/g, "");
+            }
+          }
+          const num = Number(t);
+          if (isNaN(num)) return 0;
+          return neg ? -num : num;
+        }
+
+        function defaultCategoryForAmount(a) {
+          const n = parseAmount(a);
+          if (n > 0) return "Extra Income"; // mặc định Thu nhập
+          if (n < 0) return "Khác"; // mặc định Chi phí
+          return "";
+        }
+
+        function updateCategoryBadge(row) {
+          const sel = row.querySelector(".category-select");
+          const badge = row.querySelector(".cat-badge");
+          const meta = categoryMeta[sel?.value || ""];
+          if (badge) {
+            if (meta) {
+              badge.textContent = meta.icon;
+              badge.style.background = meta.color;
+              badge.style.opacity = "1";
+            } else {
+              badge.textContent = "";
+              badge.style.background = "#e5e7eb";
+              badge.style.opacity = "0.7";
+            }
+          }
+        }
         function addRow(vals) {
           const tr = document.createElement("tr");
           tr.innerHTML = `
             <td><input name="date[]" value="${vals?.date || ""}" /></td>
-            <td><input name="category[]" value="${vals?.category || ""}" /></td>
+            <td><select class="category-select" name="category[]"></select></td>
             <td><input name="note[]" value="${vals?.note || ""}" /></td>
-            <td><input name="amount[]" value="${vals?.amount || ""}" /></td>
+            <td class="amount"><input name="amount[]" value="${
+              vals?.amount || ""
+            }" /></td>
             <td><button type="button" class="btn btn-del">❌ Xoá</button></td>
           `;
           tbl.tBodies[0].appendChild(tr);
+          const sel = tr.querySelector(".category-select");
+          let initial = vals?.category || "";
+          const a0 = vals?.amount || "";
+          const n0 = parseAmount(a0);
+          const type0 = n0 > 0 ? "income" : n0 < 0 ? "expense" : "";
+          if (!initial) initial = defaultCategoryForAmount(a0);
+          populateCategorySelect(sel, initial, type0);
+          updateCategoryBadge(tr);
+          sel.addEventListener("change", () => updateCategoryBadge(tr));
+          const amtInput = tr.querySelector('input[name="amount[]"]');
+          function updateOptions() {
+            const val = amtInput.value;
+            const n = parseAmount(val);
+            const type = n > 0 ? "income" : n < 0 ? "expense" : "";
+            const current = sel.value;
+            populateCategorySelect(sel, current, type);
+            if (!sel.value) sel.value = defaultCategoryForAmount(val);
+            updateCategoryBadge(tr);
+          }
+          amtInput && amtInput.addEventListener("input", updateOptions);
         }
+        // Populate existing category selects
+        const existingSelects = Array.from(
+          document.querySelectorAll(".category-select")
+        );
+        existingSelects.forEach((sel) => {
+          const row = sel.closest("tr");
+          const amtInput = row.querySelector('input[name="amount[]"]');
+          const a = amtInput ? amtInput.value : "";
+          const n = parseAmount(a);
+          const type = n > 0 ? "income" : n < 0 ? "expense" : "";
+          populateCategorySelect(
+            sel,
+            sel.getAttribute("data-initial") || "",
+            type
+          );
+          updateCategoryBadge(row);
+          sel.addEventListener("change", () => updateCategoryBadge(row));
+          function updateOptions() {
+            const val = amtInput.value;
+            const n = parseAmount(val);
+            const type = n > 0 ? "income" : n < 0 ? "expense" : "";
+            const current = sel.value;
+            populateCategorySelect(sel, current, type);
+            if (!sel.value) sel.value = defaultCategoryForAmount(val);
+            updateCategoryBadge(row);
+          }
+          amtInput && amtInput.addEventListener("input", updateOptions);
+        });
+
         addBtn && addBtn.addEventListener("click", () => addRow());
         tbl &&
           tbl.addEventListener("click", (e) => {
@@ -182,6 +549,66 @@
               if (allEmpty) r.remove();
             });
           });
+
+        // Filter & search
+        function getRowCategoryType(row) {
+          const sel = row.querySelector(".category-select");
+          const v = sel ? sel.value : "";
+          if (incomeCategories.includes(v)) return "income";
+          if (expenseCategories.includes(v)) return "expense";
+          return "";
+        }
+        function rowMatchesSearch(row, term) {
+          if (!term) return true;
+          term = term.toLowerCase();
+          const fields = Array.from(row.querySelectorAll("input, select"));
+          const txt = fields
+            .map((el) => (el.value || "").toLowerCase())
+            .join(" ");
+          return txt.includes(term);
+        }
+        function applyFilter() {
+          const term = (searchBox?.value || "").trim();
+          const type = typeFilter?.value || "";
+          const rows = Array.from(tbl.tBodies[0].rows);
+          rows.forEach((r) => {
+            let show = rowMatchesSearch(r, term);
+            if (show && type) {
+              const t = getRowCategoryType(r);
+              show = t === type;
+            }
+            r.style.display = show ? "" : "none";
+          });
+        }
+        searchBox && searchBox.addEventListener("input", applyFilter);
+        typeFilter && typeFilter.addEventListener("change", applyFilter);
+        applyFilter();
+
+        // Sort Amount via header click: toggle asc/desc
+        let amountAsc = true;
+        function sortAmount(asc) {
+          const rows = Array.from(tbl.tBodies[0].rows);
+          rows.sort((a, b) => {
+            const av = parseAmount(
+              a.querySelector('input[name="amount[]"]').value
+            );
+            const bv = parseAmount(
+              b.querySelector('input[name="amount[]"]').value
+            );
+            return asc ? av - bv : bv - av;
+          });
+          const frag = document.createDocumentFragment();
+          rows.forEach((r) => frag.appendChild(r));
+          tbl.tBodies[0].appendChild(frag);
+        }
+        amountHeader &&
+          amountHeader.addEventListener("click", () => {
+            sortAmount(amountAsc);
+            amountAsc = !amountAsc;
+          });
+        // Legacy button still available
+        sortAmountAscBtn &&
+          sortAmountAscBtn.addEventListener("click", () => sortAmount(true));
       })();
     </script>
   </body>
