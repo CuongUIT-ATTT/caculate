@@ -81,6 +81,6 @@ Ghi chú:
 
 ## Ghi chú
 
- - Ứng dụng nạp trực tiếp hàm `compute_summary` từ file `Caculate-auto.py` nên không cần đổi tên file.
- - Web đã hỗ trợ tải xuống CSV/JSON/MD (XLSX/PDF nếu có thư viện). Chế độ CLI vẫn có đủ tuỳ chọn xuất.
+- Ứng dụng nạp trực tiếp hàm `compute_summary` từ file `Caculate-auto.py` nên không cần đổi tên file.
+- Web đã hỗ trợ tải xuống CSV/JSON/MD (XLSX/PDF nếu có thư viện). Chế độ CLI vẫn có đủ tuỳ chọn xuất.
   "# caculate"

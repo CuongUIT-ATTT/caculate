@@ -48,7 +48,8 @@ def list_transaction_files():
 @app.route('/', methods=['GET'])
 def index():
     files = list_transaction_files()
-    return render_template('index.html', files=files)
+    error = (request.args.get('error') or '').strip()
+    return render_template('index.html', files=files, error=error)
 
 
 @app.route('/compute', methods=['POST'])
@@ -367,7 +368,7 @@ def pdf_to_csv():
     paid_on = (request.form.get('paid_on') or None)
     start = (request.form.get('start') or None)
     if not pdf_file or not pdf_file.filename.lower().endswith('.pdf'):
-        return redirect(url_for('index'))
+        return redirect(url_for('index', error='Vui lòng chọn file PDF hợp lệ.'))
 
     fn = secure_filename(pdf_file.filename)
     ts = datetime.now().strftime('%Y%m%d-%H%M%S')
@@ -391,12 +392,12 @@ def pdf_to_csv():
             from pdf_to_csv import extract_tables_to_csv
             extract_tables_to_csv(saved_pdf_path, out_csv_path)
         except Exception:
-            return redirect(url_for('index'))
+            return redirect(url_for('index', error='Không thể trích bảng từ PDF. Kiểm tra cài đặt pdfplumber.'))
     else:
         try:
             extract_tables_to_structured_csv(saved_pdf_path, out_csv_path)
-        except Exception:
-            return redirect(url_for('index'))
+        except Exception as e:
+            return redirect(url_for('index', error=f'Lỗi chuyển PDF → CSV: {str(e)[:120]}'))
 
     # Redirect straight to results to allow immediate computation/view
     params = {
