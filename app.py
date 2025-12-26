@@ -7,6 +7,7 @@ import importlib.util
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, send_file
 from werkzeug.utils import secure_filename
+import tempfile
 
 BASE_DIR = os.path.dirname(__file__)
 TRANSACTIONS_DIR = os.path.join(BASE_DIR, 'Transactions')
@@ -354,6 +355,58 @@ def export(fmt: str):
         return send_file(bytes_io, as_attachment=True, download_name=f"{base_name}.{person}.summary.pdf", mimetype='application/pdf')
 
     return redirect(url_for('index'))
+
+
+@app.route('/pdf-to-csv', methods=['POST'])
+def pdf_to_csv():
+    # Ensure uploads folder exists
+    os.makedirs(UPLOADS_DIR, exist_ok=True)
+
+    pdf_file = request.files.get('pdf')
+    person = (request.form.get('person') or 'Quân').strip()
+    paid_on = (request.form.get('paid_on') or None)
+    start = (request.form.get('start') or None)
+    if not pdf_file or not pdf_file.filename.lower().endswith('.pdf'):
+        return redirect(url_for('index'))
+
+    fn = secure_filename(pdf_file.filename)
+    ts = datetime.now().strftime('%Y%m%d-%H%M%S')
+    saved_pdf_name = f"{ts}_{fn}"
+    saved_pdf_path = os.path.join(UPLOADS_DIR, saved_pdf_name)
+    pdf_file.save(saved_pdf_path)
+
+    base_name = os.path.splitext(os.path.basename(fn))[0]
+    out_csv_name = f"{ts}_{base_name}.extracted.csv"
+    out_csv_path = os.path.join(UPLOADS_DIR, out_csv_name)
+
+    # Lazy import to avoid hard dependency unless used
+    try:
+        from pdf_to_csv import extract_tables_to_structured_csv
+    except Exception:
+        extract_tables_to_structured_csv = None
+
+    if extract_tables_to_structured_csv is None:
+        # As a minimal fallback, use the raw extractor and then wrap to the schema with basic mapping
+        try:
+            from pdf_to_csv import extract_tables_to_csv
+            extract_tables_to_csv(saved_pdf_path, out_csv_path)
+        except Exception:
+            return redirect(url_for('index'))
+    else:
+        try:
+            extract_tables_to_structured_csv(saved_pdf_path, out_csv_path)
+        except Exception:
+            return redirect(url_for('index'))
+
+    # Redirect straight to results to allow immediate computation/view
+    params = {
+        'file': out_csv_name,
+        'uploaded': '1',
+        'person': person,
+        'paid_on': paid_on or '',
+        'start': start or '',
+    }
+    return redirect(url_for('result_view', **params))
 
 
 if __name__ == '__main__':
