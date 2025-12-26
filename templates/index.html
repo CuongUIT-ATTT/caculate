@@ -183,12 +183,19 @@
             border-top: 1px solid var(--border);
           "
         />
-        <h2 style="font-size: 18px; margin: 0 0 12px">Tạo CSV từ PDF</h2>
+        <h2 style="font-size: 18px; margin: 0 0 12px">
+          Chuyển PDF thành bảng (chỉnh sửa)
+        </h2>
         <p class="note">
-          Tải lên PDF chứa bảng dữ liệu. Hệ thống sẽ ánh xạ cột về định dạng CSV
-          chuẩn (Date, Category name, Note, Amount) và mở trang kết quả.
+          Tải lên PDF chứa bảng dữ liệu. Hệ thống sẽ tạo bảng theo định dạng CSV
+          chuẩn (Date, Category name, Note, Amount) để bạn chỉnh sửa trực tiếp
+          trên web.
         </p>
-        <form method="post" action="/pdf-to-csv" enctype="multipart/form-data">
+        <form
+          method="post"
+          action="/pdf-to-table"
+          enctype="multipart/form-data"
+        >
           <label for="pdf">File PDF</label>
           <input
             id="pdf"
@@ -213,6 +220,53 @@
           </div>
           <label for="start_pdf">Ngày bắt đầu tính (YYYY-MM-DD)</label>
           <input id="start_pdf" name="start" placeholder="2025-11-29" />
+          <button type="submit">Tạo bảng để chỉnh sửa</button>
+        </form>
+        <hr
+          style="
+            margin: 24px 0;
+            border: none;
+            border-top: 1px solid var(--border);
+          "
+        />
+        <h2 style="font-size: 18px; margin: 0 0 12px">
+          Chuyển PDF → CSV và tính (nhanh)
+        </h2>
+        <p class="note">
+          Tuỳ chọn: chuyển thẳng PDF thành CSV chuẩn rồi mở trang kết quả tính
+          toán (không chỉnh sửa).
+        </p>
+        <form method="post" action="/pdf-to-csv" enctype="multipart/form-data">
+          <label for="pdf2">File PDF</label>
+          <input
+            id="pdf2"
+            name="pdf"
+            type="file"
+            accept="application/pdf,.pdf"
+          />
+          <div class="row">
+            <div>
+              <label for="person_pdf2">Tên người</label>
+              <input
+                id="person_pdf2"
+                name="person"
+                placeholder="Quân"
+                value="Quân"
+              />
+            </div>
+            <div>
+              <label for="paid_on_pdf2"
+                >Ngày đã trả gần nhất (YYYY-MM-DD)</label
+              >
+              <input
+                id="paid_on_pdf2"
+                name="paid_on"
+                placeholder="2025-11-28"
+              />
+            </div>
+          </div>
+          <label for="start_pdf2">Ngày bắt đầu tính (YYYY-MM-DD)</label>
+          <input id="start_pdf2" name="start" placeholder="2025-11-29" />
           <button type="submit">Chuyển PDF → CSV và tính</button>
         </form>
       </div>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chỉnh sửa bảng giao dịch</title>
+    <style>
+      :root {
+        --bg: #ffffff;
+        --fg: #111827;
+        --border: #e5e7eb;
+        --accent: #2563eb;
+        --accent-hover: #1d4ed8;
+      }
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial,
+          sans-serif;
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+      }
+      .wrap {
+        padding: 24px;
+      }
+      .card {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 24px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      }
+      h1 {
+        margin-top: 0;
+        font-size: 22px;
+      }
+      .btn {
+        display: inline-block;
+        margin: 6px 6px 6px 0;
+        padding: 10px 14px;
+        background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+        color: #fff;
+        border-radius: 9999px;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 12px;
+      }
+      input,
+      select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        font-size: 16px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 12px;
+        min-width: 680px;
+      }
+      th,
+      td {
+        border: 1px solid var(--border);
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background: #f8fafc;
+      }
+      .amount {
+        text-align: right;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h1>Chỉnh sửa bảng giao dịch (PDF: {{ source_pdf }})</h1>
+        <form id="tableForm" method="post">
+          <div class="row">
+            <div>
+              <label for="person_tbl">Tên người</label>
+              <input id="person_tbl" name="person" value="{{ person }}" />
+            </div>
+            <div>
+              <label for="paid_on_tbl">Ngày đã trả gần nhất (YYYY-MM-DD)</label>
+              <input id="paid_on_tbl" name="paid_on" value="{{ paid_on }}" />
+            </div>
+            <div>
+              <label for="start_tbl">Ngày bắt đầu tính (YYYY-MM-DD)</label>
+              <input id="start_tbl" name="start" value="{{ start }}" />
+            </div>
+          </div>
+
+          <div style="margin-top: 12px">
+            <button type="button" class="btn" id="addRowBtn">
+              ➕ Thêm dòng
+            </button>
+            <button type="button" class="btn" id="clearEmptyBtn">
+              🧹 Xoá dòng trống
+            </button>
+          </div>
+
+          <table id="editTable">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Category name</th>
+                <th>Note</th>
+                <th class="amount">Amount</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in records %}
+              <tr>
+                <td><input name="date[]" value="{{ r['Date'] }}" /></td>
+                <td>
+                  <input name="category[]" value="{{ r['Category name'] }}" />
+                </td>
+                <td><input name="note[]" value="{{ r['Note'] }}" /></td>
+                <td><input name="amount[]" value="{{ r['Amount'] }}" /></td>
+                <td>
+                  <button type="button" class="btn btn-del">❌ Xoá</button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+          <div style="margin-top: 16px">
+            <button formaction="/table/export" formmethod="post" class="btn">
+              💾 Xuất CSV
+            </button>
+            <button formaction="/table/compute" formmethod="post" class="btn">
+              🧮 Dùng để tính toán
+            </button>
+            <a href="/" class="btn">↩️ Quay lại</a>
+          </div>
+        </form>
+      </div>
+    </div>
+    <script>
+      (function () {
+        const tbl = document.getElementById("editTable");
+        const addBtn = document.getElementById("addRowBtn");
+        const clearBtn = document.getElementById("clearEmptyBtn");
+        function addRow(vals) {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td><input name="date[]" value="${vals?.date || ""}" /></td>
+            <td><input name="category[]" value="${vals?.category || ""}" /></td>
+            <td><input name="note[]" value="${vals?.note || ""}" /></td>
+            <td><input name="amount[]" value="${vals?.amount || ""}" /></td>
+            <td><button type="button" class="btn btn-del">❌ Xoá</button></td>
+          `;
+          tbl.tBodies[0].appendChild(tr);
+        }
+        addBtn && addBtn.addEventListener("click", () => addRow());
+        tbl &&
+          tbl.addEventListener("click", (e) => {
+            if (e.target && e.target.classList.contains("btn-del")) {
+              const tr = e.target.closest("tr");
+              tr && tr.remove();
+            }
+          });
+        clearBtn &&
+          clearBtn.addEventListener("click", () => {
+            const rows = Array.from(tbl.tBodies[0].rows);
+            rows.forEach((r) => {
+              const inputs = Array.from(r.querySelectorAll("input"));
+              const allEmpty = inputs.every(
+                (i) => (i.value || "").trim() === ""
+              );
+              if (allEmpty) r.remove();
+            });
+          });
+      })();
+    </script>
+  </body>
+</html>

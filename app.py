@@ -8,6 +8,7 @@ from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, send_file
 from werkzeug.utils import secure_filename
 import tempfile
+import uuid
 
 BASE_DIR = os.path.dirname(__file__)
 TRANSACTIONS_DIR = os.path.join(BASE_DIR, 'Transactions')
@@ -406,6 +407,147 @@ def pdf_to_csv():
         'person': person,
         'paid_on': paid_on or '',
         'start': start or '',
+    }
+    return redirect(url_for('result_view', **params))
+
+
+@app.route('/pdf-to-table', methods=['POST'])
+def pdf_to_table():
+    os.makedirs(UPLOADS_DIR, exist_ok=True)
+    pdf_file = request.files.get('pdf')
+    person = (request.form.get('person') or 'Quân').strip()
+    paid_on = (request.form.get('paid_on') or '')
+    start = (request.form.get('start') or '')
+
+    if not pdf_file or not pdf_file.filename.lower().endswith('.pdf'):
+        return redirect(url_for('index', error='Vui lòng chọn file PDF hợp lệ.'))
+
+    fn = secure_filename(pdf_file.filename)
+    ts = datetime.now().strftime('%Y%m%d-%H%M%S')
+    saved_pdf_name = f"{ts}_{fn}"
+    saved_pdf_path = os.path.join(UPLOADS_DIR, saved_pdf_name)
+    pdf_file.save(saved_pdf_path)
+
+    # Extract structured records
+    try:
+        from pdf_to_csv import extract_tables_to_structured_csv
+    except Exception:
+        extract_tables_to_structured_csv = None
+    records = []
+    if extract_tables_to_structured_csv is None:
+        try:
+            from pdf_to_csv import extract_tables_to_csv
+            # Fallback: produce raw CSV then read back into rows
+            tmp_csv = os.path.join(UPLOADS_DIR, f"{ts}_{os.path.splitext(fn)[0]}.raw.csv")
+            extract_tables_to_csv(saved_pdf_path, tmp_csv)
+            # Convert raw rows to minimal schema by best-effort
+            with open(tmp_csv, encoding='utf-8', newline='') as f:
+                rdr = csv.reader(f)
+                for row in rdr:
+                    if not any(row):
+                        continue
+                    date = (row[0] or '').strip() if len(row) > 0 else ''
+                    note = ' '.join([c for c in row[1:-1] if c])
+                    amt = (row[-1] or '0') if len(row) > 1 else '0'
+                    records.append({'Date': date, 'Category name': '', 'Note': note, 'Amount': str(amt)})
+        except Exception as e:
+            return redirect(url_for('index', error=f'Lỗi trích PDF: {str(e)[:120]}'))
+    else:
+        # Use structured extractor and read produced CSV into records
+        out_csv_name = f"{ts}_{os.path.splitext(fn)[0]}.structured.csv"
+        out_csv_path = os.path.join(UPLOADS_DIR, out_csv_name)
+        try:
+            extract_tables_to_structured_csv(saved_pdf_path, out_csv_path)
+        except Exception as e:
+            return redirect(url_for('index', error=f'Lỗi chuyển PDF → CSV: {str(e)[:120]}'))
+        try:
+            with open(out_csv_path, encoding='utf-8', newline='') as f:
+                rdr = csv.DictReader(f)
+                for r in rdr:
+                    records.append({
+                        'Date': r.get('Date', ''),
+                        'Category name': r.get('Category name', ''),
+                        'Note': r.get('Note', ''),
+                        'Amount': r.get('Amount', '0'),
+                    })
+        except Exception as e:
+            return redirect(url_for('index', error=f'Lỗi đọc CSV: {str(e)[:120]}'))
+
+    # Render editable table
+    return render_template('edit_table.html',
+                           records=records,
+                           person=person,
+                           paid_on=paid_on,
+                           start=start,
+                           source_pdf=os.path.basename(saved_pdf_name))
+
+
+@app.route('/table/export', methods=['POST'])
+def table_export():
+    # Read arrays from form
+    dates = request.form.getlist('date[]')
+    cats = request.form.getlist('category[]')
+    notes = request.form.getlist('note[]')
+    amts = request.form.getlist('amount[]')
+    rows = []
+    for i in range(max(len(dates), len(cats), len(notes), len(amts))):
+        d = dates[i] if i < len(dates) else ''
+        c = cats[i] if i < len(cats) else ''
+        n = notes[i] if i < len(notes) else ''
+        a = amts[i] if i < len(amts) else '0'
+        if not (d or c or n or a):
+            continue
+        rows.append({'Date': d.strip(), 'Category name': c.strip(), 'Note': n.strip(), 'Amount': a.strip()})
+
+    # Build CSV for download
+    bio = io.StringIO()
+    w = csv.DictWriter(bio, fieldnames=['Date', 'Category name', 'Note', 'Amount'])
+    w.writeheader()
+    for r in rows:
+        w.writerow(r)
+    bytes_io = io.BytesIO(bio.getvalue().encode('utf-8'))
+    fname = f"edited_{datetime.now().strftime('%Y%m%d-%H%M%S')}.csv"
+    return send_file(bytes_io, as_attachment=True, download_name=fname, mimetype='text/csv')
+
+
+@app.route('/table/compute', methods=['POST'])
+def table_compute():
+    # Read form arrays
+    dates = request.form.getlist('date[]')
+    cats = request.form.getlist('category[]')
+    notes = request.form.getlist('note[]')
+    amts = request.form.getlist('amount[]')
+    person = (request.form.get('person') or 'Quân').strip()
+    paid_on = (request.form.get('paid_on') or '')
+    start = (request.form.get('start') or '')
+
+    # Save to Uploads as CSV
+    os.makedirs(UPLOADS_DIR, exist_ok=True)
+    ts = datetime.now().strftime('%Y%m%d-%H%M%S')
+    out_name = f"{ts}_edited_table.csv"
+    out_path = os.path.join(UPLOADS_DIR, out_name)
+    try:
+        with open(out_path, 'w', encoding='utf-8', newline='') as fo:
+            w = csv.DictWriter(fo, fieldnames=['Date', 'Category name', 'Note', 'Amount'])
+            w.writeheader()
+            for i in range(max(len(dates), len(cats), len(notes), len(amts))):
+                d = dates[i] if i < len(dates) else ''
+                c = cats[i] if i < len(cats) else ''
+                n = notes[i] if i < len(notes) else ''
+                a = amts[i] if i < len(amts) else '0'
+                if not (d or c or n or a):
+                    continue
+                w.writerow({'Date': d.strip(), 'Category name': c.strip(), 'Note': n.strip(), 'Amount': a.strip()})
+    except Exception as e:
+        return redirect(url_for('index', error=f'Lỗi lưu CSV: {str(e)[:120]}'))
+
+    # Redirect to compute result
+    params = {
+        'file': out_name,
+        'uploaded': '1',
+        'person': person,
+        'paid_on': paid_on,
+        'start': start,
     }
     return redirect(url_for('result_view', **params))
 
