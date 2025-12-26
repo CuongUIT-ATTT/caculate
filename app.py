@@ -497,11 +497,28 @@ def table_export():
         a = amts[i] if i < len(amts) else '0'
         if not (d or c or n or a):
             continue
-        rows.append({'Date': d.strip(), 'Category name': c.strip(), 'Note': n.strip(), 'Amount': a.strip()})
+        # Map to full CSV schema similar to exported files
+        amt_val = (a or '0').strip()
+        try:
+            num = float(str(amt_val).replace(',', '').replace(' ', ''))
+        except Exception:
+            num = 0.0
+        _type = 'Income' if num > 0 else 'Expense' if num < 0 else ''
+        rows.append({
+            'Date': d.strip(),
+            'Wallet': 'Tiền',
+            'Type': _type,
+            'Category name': c.strip(),
+            'Amount': amt_val,
+            'Currency': 'VND',
+            'Note': n.strip(),
+            'Labels': '',
+            'Author': (request.form.get('person') or 'Pham Hung Cuong').strip(),
+        })
 
     # Build CSV for download
     bio = io.StringIO()
-    w = csv.DictWriter(bio, fieldnames=['Date', 'Category name', 'Note', 'Amount'])
+    w = csv.DictWriter(bio, fieldnames=['Date','Wallet','Type','Category name','Amount','Currency','Note','Labels','Author'])
     w.writeheader()
     for r in rows:
         w.writerow(r)
@@ -528,7 +545,7 @@ def table_compute():
     out_path = os.path.join(UPLOADS_DIR, out_name)
     try:
         with open(out_path, 'w', encoding='utf-8', newline='') as fo:
-            w = csv.DictWriter(fo, fieldnames=['Date', 'Category name', 'Note', 'Amount'])
+            w = csv.DictWriter(fo, fieldnames=['Date','Wallet','Type','Category name','Amount','Currency','Note','Labels','Author'])
             w.writeheader()
             for i in range(max(len(dates), len(cats), len(notes), len(amts))):
                 d = dates[i] if i < len(dates) else ''
@@ -537,7 +554,23 @@ def table_compute():
                 a = amts[i] if i < len(amts) else '0'
                 if not (d or c or n or a):
                     continue
-                w.writerow({'Date': d.strip(), 'Category name': c.strip(), 'Note': n.strip(), 'Amount': a.strip()})
+                amt_val = (a or '0').strip()
+                try:
+                    num = float(str(amt_val).replace(',', '').replace(' ', ''))
+                except Exception:
+                    num = 0.0
+                _type = 'Income' if num > 0 else 'Expense' if num < 0 else ''
+                w.writerow({
+                    'Date': d.strip(),
+                    'Wallet': 'Tiền',
+                    'Type': _type,
+                    'Category name': c.strip(),
+                    'Amount': amt_val,
+                    'Currency': 'VND',
+                    'Note': n.strip(),
+                    'Labels': '',
+                    'Author': person,
+                })
     except Exception as e:
         return redirect(url_for('index', error=f'Lỗi lưu CSV: {str(e)[:120]}'))
 

@@ -14,7 +14,6 @@
         --accent: #2563eb;
         --accent-hover: #1d4ed8;
       }
-      /* Dark theme variables */
       body[data-theme="dark"] {
         --bg: #0b1220;
         --bg-alt: #0f172a;
@@ -44,8 +43,8 @@
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
       }
       body[data-theme="dark"] .card {
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
         background: #0f172a;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
       }
       h1 {
         margin-top: 0;
@@ -79,7 +78,6 @@
         color: #111827;
         box-sizing: border-box;
       }
-      /* Dark mode: inputs/selects stay white with black text for readability */
       body[data-theme="dark"] input,
       body[data-theme="dark"] select {
         background: #ffffff;
@@ -101,13 +99,24 @@
         border: 1px solid var(--border);
         padding: 8px;
         text-align: left;
-        overflow: hidden;
+        overflow: visible;
+        vertical-align: top;
+      }
+      td {
+        white-space: normal;
+        word-break: break-word;
       }
       th {
         background: var(--bg-alt);
       }
       .amount {
         text-align: right;
+      }
+      textarea {
+        width: 100%;
+        min-height: 38px;
+        resize: vertical;
+        box-sizing: border-box;
       }
       .cat-cell {
         display: flex;
@@ -129,6 +138,29 @@
         background: var(--accent);
         border-radius: 9999px;
         margin: 6px 0 16px;
+      }
+      .note {
+        color: var(--muted);
+        font-size: 14px;
+      }
+      @media (max-width: 640px) {
+        .wrap {
+          padding: 16px;
+        }
+        .card {
+          padding: 16px;
+        }
+        h1 {
+          font-size: 20px;
+        }
+        th,
+        td {
+          padding: 6px;
+          font-size: 14px;
+        }
+        .row {
+          grid-template-columns: 1fr;
+        }
       }
       .note {
         color: var(--muted);
@@ -263,7 +295,7 @@
                       ></select>
                     </div>
                   </td>
-                  <td><input name="note[]" value="{{ r['Note'] }}" /></td>
+                  <td><textarea name="note[]">{{ r['Note'] }}</textarea></td>
                   <td class="amount">
                     <input name="amount[]" value="{{ r['Amount'] }}" />
                   </td>
@@ -471,13 +503,13 @@
         function addRow(vals) {
           const tr = document.createElement("tr");
           tr.innerHTML = `
-            <td><input name="date[]" value="${vals?.date || ""}" /></td>
-            <td><select class="category-select" name="category[]"></select></td>
-            <td><input name="note[]" value="${vals?.note || ""}" /></td>
-            <td class="amount"><input name="amount[]" value="${
+            <td><input name=\"date[]\" value=\"${vals?.date || ""}\" /></td>
+            <td><select class=\"category-select\" name=\"category[]\"></select></td>
+            <td><textarea name=\"note[]\">${vals?.note || ""}</textarea></td>
+            <td class=\"amount\"><input name=\"amount[]\" value=\"${
               vals?.amount || ""
-            }" /></td>
-            <td><button type="button" class="btn btn-del">❌ Xoá</button></td>
+            }\" /></td>
+            <td><button type=\"button\" class=\"btn btn-del\">❌ Xoá</button></td>
           `;
           tbl.tBodies[0].appendChild(tr);
           const sel = tr.querySelector(".category-select");
