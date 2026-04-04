@@ -1,296 +1,104 @@
-<!DOCTYPE html>
-<html lang="vi">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Thu chi - Tính nợ</title>
-    <style>
-      :root {
-        --bg: #ffffff;
-        --fg: #111827;
-        --muted: #6b7280;
-        --border: #e5e7eb;
-        --accent: #2563eb;
-        --accent-hover: #1d4ed8;
-      }
-      /* Dark theme variables */
-      body[data-theme="dark"] {
-        --bg: #0b1220;
-        --fg: #e5e7eb;
-        --muted: #94a3b8;
-        --border: #1f2937;
-        --accent: #60a5fa;
-        --accent-hover: #3b82f6;
-      }
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial,
-          sans-serif;
-        margin: 0;
-        background: var(--bg);
-        color: var(--fg);
-      }
-      .wrap {
-        padding: 24px;
-      }
-      .card {
-        max-width: 900px;
-        margin: 0 auto;
-        padding: 24px;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        background: #fff;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-      }
-      body[data-theme="dark"] .card {
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-        background: #0f172a;
-      }
-      h1 {
-        margin-top: 0;
-        font-size: 22px;
-      }
-      label {
-        display: block;
-        margin: 12px 0 6px;
-        font-weight: 600;
-      }
-      input,
-      select {
-        width: 100%;
-        padding: 12px;
-        border: 1px solid #cbd5e1;
-        border-radius: 10px;
-        font-size: 16px;
-      }
-      .row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-      }
-      button {
-        margin-top: 18px;
-        padding: 12px 18px;
-        background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-        color: #fff;
-        border: none;
-        border-radius: 9999px;
-        cursor: pointer;
-        font-size: 16px;
-        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
-        transition: transform 0.08s ease-out, box-shadow 0.2s ease;
-      }
-      button:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 14px rgba(29, 78, 216, 0.3);
-      }
-      .note {
-        color: var(--muted);
-        font-size: 14px;
-      }
-      @media (max-width: 640px) {
-        .wrap {
-          padding: 16px;
-        }
-        .card {
-          padding: 16px;
-        }
-        .row {
-          grid-template-columns: 1fr;
-        }
-        button {
-          width: 100%;
-        }
-        h1 {
-          font-size: 20px;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="wrap">
-      <div class="card">
-        {% if error %}
-        <div
-          style="
-            padding: 12px;
-            border: 1px solid #dc2626;
-            color: #dc2626;
-            border-radius: 10px;
-            background: #fff5f5;
-            margin-bottom: 12px;
-          "
-        >
-          ⚠️ {{ error }}
-        </div>
-        {% endif %}
-        <div
-          style="
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-          "
-        >
-          <h1 style="margin: 0">Web tính nợ từ CSV</h1>
-          <button
-            id="themeToggle"
-            class="btn"
-            type="button"
-            title="Chuyển chế độ sáng/tối"
-          >
-            🌙/☀️
-          </button>
-        </div>
-        <p class="note">
-          Chọn file CSV trong thư mục <strong>Transactions</strong> và điền tuỳ
-          chọn.
-        </p>
-        <form method="post" action="/compute" enctype="multipart/form-data">
-          <label for="file">File CSV</label>
-          <select id="file" name="file" required>
-            <option value="" disabled selected>-- Chọn file --</option>
-            {% for f in files %}
-            <option value="{{ f }}">{{ f }}</option>
-            {% endfor %}
-          </select>
+{% extends 'layout.html' %}
 
-          <label for="person">Tên người</label>
-          <input id="person" name="person" placeholder="Quân" value="Quân" />
+{% block title %}Trang chủ - Thu Chi Pro{% endblock %}
 
-          <div class="row">
-            <div>
-              <label for="paid_on">Ngày đã trả gần nhất (YYYY-MM-DD)</label>
-              <input id="paid_on" name="paid_on" placeholder="2025-11-28" />
-            </div>
-            <div>
-              <label for="start">Ngày bắt đầu tính (YYYY-MM-DD)</label>
-              <input id="start" name="start" placeholder="2025-11-29" />
-            </div>
-          </div>
-
-          <label for="upload">Hoặc tải lên CSV</label>
-          <input id="upload" name="upload" type="file" accept=".csv,text/csv" />
-
-          <button type="submit">Tính toán</button>
-        </form>
-        <hr
-          style="
-            margin: 24px 0;
-            border: none;
-            border-top: 1px solid var(--border);
-          "
-        />
-        <h2 style="font-size: 18px; margin: 0 0 12px">
-          Chuyển PDF thành bảng (chỉnh sửa)
-        </h2>
-        <p class="note">
-          Tải lên PDF chứa bảng dữ liệu. Hệ thống sẽ tạo bảng theo định dạng CSV
-          chuẩn (Date, Category name, Note, Amount) để bạn chỉnh sửa trực tiếp
-          trên web.
-        </p>
-        <form
-          method="post"
-          action="/pdf-to-table"
-          enctype="multipart/form-data"
-        >
-          <label for="pdf">File PDF</label>
-          <input
-            id="pdf"
-            name="pdf"
-            type="file"
-            accept="application/pdf,.pdf"
-          />
-          <div class="row">
-            <div>
-              <label for="person_pdf">Tên người</label>
-              <input
-                id="person_pdf"
-                name="person"
-                placeholder="Quân"
-                value="Quân"
-              />
-            </div>
-            <div>
-              <label for="paid_on_pdf">Ngày đã trả gần nhất (YYYY-MM-DD)</label>
-              <input id="paid_on_pdf" name="paid_on" placeholder="2025-11-28" />
-            </div>
-          </div>
-          <label for="start_pdf">Ngày bắt đầu tính (YYYY-MM-DD)</label>
-          <input id="start_pdf" name="start" placeholder="2025-11-29" />
-          <button type="submit">Tạo bảng để chỉnh sửa</button>
-        </form>
-        <hr
-          style="
-            margin: 24px 0;
-            border: none;
-            border-top: 1px solid var(--border);
-          "
-        />
-        <h2 style="font-size: 18px; margin: 0 0 12px">
-          Chuyển PDF → CSV và tính (nhanh)
-        </h2>
-        <p class="note">
-          Tuỳ chọn: chuyển thẳng PDF thành CSV chuẩn rồi mở trang kết quả tính
-          toán (không chỉnh sửa).
-        </p>
-        <form method="post" action="/pdf-to-csv" enctype="multipart/form-data">
-          <label for="pdf2">File PDF</label>
-          <input
-            id="pdf2"
-            name="pdf"
-            type="file"
-            accept="application/pdf,.pdf"
-          />
-          <div class="row">
-            <div>
-              <label for="person_pdf2">Tên người</label>
-              <input
-                id="person_pdf2"
-                name="person"
-                placeholder="Quân"
-                value="Quân"
-              />
-            </div>
-            <div>
-              <label for="paid_on_pdf2"
-                >Ngày đã trả gần nhất (YYYY-MM-DD)</label
-              >
-              <input
-                id="paid_on_pdf2"
-                name="paid_on"
-                placeholder="2025-11-28"
-              />
-            </div>
-          </div>
-          <label for="start_pdf2">Ngày bắt đầu tính (YYYY-MM-DD)</label>
-          <input id="start_pdf2" name="start" placeholder="2025-11-29" />
-          <button type="submit">Chuyển PDF → CSV và tính</button>
-        </form>
-      </div>
+{% block content %}
+<div class="fade-in">
+    {% if error %}
+    <div class="card" style="border-left: 4px solid var(--error); background: rgba(239, 68, 68, 0.1);">
+        <p style="color: var(--error); font-weight: 500;">⚠️ {{ error }}</p>
     </div>
-    <script>
-      (function () {
-        const body = document.body;
-        const themeKey = "thu-chi-theme";
-        const saved = localStorage.getItem(themeKey);
-        if (saved) {
-          body.setAttribute("data-theme", saved);
-        } else {
-          body.setAttribute("data-theme", "light");
-        }
-        const toggleBtn = document.getElementById("themeToggle");
-        if (toggleBtn) {
-          toggleBtn.addEventListener("click", function () {
-            const cur =
-              body.getAttribute("data-theme") === "dark" ? "light" : "dark";
-            body.setAttribute("data-theme", cur);
-            localStorage.setItem(themeKey, cur);
-          });
-        }
-      })();
-    </script>
-  </body>
-</html>
+    {% endif %}
+
+    <div class="dashboard-grid">
+        <!-- Chức năng chính: Tính toán từ CSV -->
+        <div class="card">
+            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                <div style="background: rgba(59, 130, 246, 0.1); padding: 0.75rem; border-radius: 0.75rem;">
+                    <i data-lucide="calculator" style="color: var(--accent);"></i>
+                </div>
+                <h2 style="margin: 0; font-size: 1.25rem;">Tính toán từ CSV</h2>
+            </div>
+            
+            <p class="muted" style="margin-bottom: 2rem;">Chọn file có sẵn trong hệ thống hoặc tải lên file mới.</p>
+
+            <form method="post" action="/compute" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="file">Danh sách file hệ thống</label>
+                    <select id="file" name="file">
+                        <option value="" disabled selected>-- Chọn file trong Transactions --</option>
+                        {% for f in files %}
+                        <option value="{{ f }}">{{ f }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="upload">Hoặc tải lên file CSV mới</label>
+                    <input id="upload" name="upload" type="file" accept=".csv,text/csv">
+                </div>
+
+                <div class="form-group">
+                    <label for="person">Tên người cần tính</label>
+                    <input id="person" name="person" value="Quân" placeholder="Nhập tên người">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label for="paid_on">Ngày trả gần nhất</label>
+                        <input id="paid_on" name="paid_on" type="date">
+                    </div>
+                    <div class="form-group">
+                        <label for="start">Ngày bắt đầu tính</label>
+                        <input id="start" name="start" type="date">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                    <i data-lucide="play"></i> Bắt đầu tính toán
+                </button>
+            </form>
+        </div>
+
+        <!-- Chức năng PDF Workflow -->
+        <div class="card">
+            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                <div style="background: rgba(139, 92, 246, 0.1); padding: 0.75rem; border-radius: 0.75rem;">
+                    <i data-lucide="file-text" style="color: #8b5cf6;"></i>
+                </div>
+                <h2 style="margin: 0; font-size: 1.25rem;">Xử lý Sao kê PDF</h2>
+            </div>
+
+            <p class="muted" style="margin-bottom: 2rem;">Trích xuất dữ liệu từ PDF và chuyển đổi sang CSV.</p>
+
+            <!-- Chế độ chỉnh sửa bảng -->
+            <form method="post" action="/pdf-to-table" enctype="multipart/form-data" style="margin-bottom: 2rem; padding: 1.5rem; background: var(--bg-primary); border-radius: 1rem;">
+                <h3 style="font-size: 1rem; margin-bottom: 1rem;">1. Trích xuất & Chỉnh sửa</h3>
+                <div class="form-group">
+                    <input id="pdf" name="pdf" type="file" accept=".pdf" required>
+                </div>
+                <!-- Mini fields inside the box -->
+                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem;">
+                    <input name="person" value="Quân" placeholder="Tên" style="font-size: 0.8rem; padding: 0.5rem;">
+                    <input name="paid_on" type="date" style="font-size: 0.8rem; padding: 0.5rem;">
+                 </div>
+
+                <button type="submit" class="btn btn-outline" style="width: 100%; margin-top: 1.5rem;">
+                    <i data-lucide="table"></i> Tạo bảng & Chỉnh sửa
+                </button>
+            </form>
+
+            <!-- Chuyển đổi nhanh -->
+            <form method="post" action="/pdf-to-csv" enctype="multipart/form-data" style="padding: 1.5rem; background: var(--bg-primary); border-radius: 1rem;">
+                <h3 style="font-size: 1rem; margin-bottom: 1rem;">2. Chuyển đổi nhanh</h3>
+                <div class="form-group">
+                    <input id="pdf2" name="pdf" type="file" accept=".pdf" required>
+                </div>
+                <button type="submit" class="btn btn-outline" style="width: 100%; margin-top: 1rem;">
+                    <i data-lucide="zap"></i> Chuyển thẳng PDF → Báo cáo
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

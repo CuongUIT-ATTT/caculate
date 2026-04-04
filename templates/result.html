@@ -1,578 +1,193 @@
-<!DOCTYPE html>
-<html lang="vi">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Kết quả tính toán</title>
-    <style>
-      :root {
-        --bg: #ffffff;
-        --bg-alt: #f8fafc;
-        --fg: #111827;
-        --muted: #6b7280;
-        --border: #e5e7eb;
-        --accent: #2563eb; /* blue-600 */
-        --accent-hover: #1d4ed8; /* blue-700 */
-        --positive: #16a34a; /* green-600 */
-        --warning: #f59e0b; /* amber-500 */
-        --danger: #dc2626; /* red-600 */
-      }
-      /* Dark theme variables */
-      body[data-theme="dark"] {
-        --bg: #0b1220;
-        --bg-alt: #0f172a;
-        --fg: #e5e7eb;
-        --muted: #94a3b8;
-        --border: #1f2937;
-        --accent: #60a5fa;
-        --accent-hover: #3b82f6;
-      }
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial,
-          sans-serif;
-        margin: 0;
-        background: var(--bg);
-        color: var(--fg);
-      }
-      .wrap {
-        padding: 24px;
-      }
-      .card {
-        max-width: 1100px;
-        margin: 0 auto;
-        padding: 24px;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        background: #fff;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-      }
-      body[data-theme="dark"] .card {
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-        background: #0f172a;
-      }
-      h1 {
-        margin-top: 0;
-        font-size: 22px;
-      }
-      .btn {
-        display: inline-block;
-        margin-top: 12px;
-        padding: 10px 14px;
-        background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-        color: #fff;
-        border-radius: 9999px;
-        text-decoration: none;
-        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
-        transition: transform 0.08s ease-out, box-shadow 0.2s ease;
-      }
-      .btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 14px rgba(29, 78, 216, 0.3);
-      }
-      .accent-bar {
-        height: 4px;
-        background: var(--accent);
-        border-radius: 9999px;
-        margin: 6px 0 16px;
-      }
-      .summary {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
-        list-style: none;
-        padding: 0;
-      }
-      .summary li {
-        padding: 10px 12px;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-      }
-      .table-wrap {
-        width: 100%;
-        overflow-x: auto;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 12px;
-        min-width: 680px;
-      }
-      th,
-      td {
-        border: 1px solid var(--border);
-        padding: 8px;
-        text-align: left;
-      }
-      th {
-        background: var(--bg-alt);
-      }
-      tbody tr:nth-child(odd) {
-        background: #fbfdff;
-      }
-      tbody tr:hover {
-        background: #f3f4f6;
-      }
-      /* Dark mode: ensure white cells use dark text for contrast */
-      body[data-theme="dark"] table tbody tr:nth-child(odd) {
-        background: #fbfdff;
-        color: #111827;
-      }
-      body[data-theme="dark"] table tbody tr:nth-child(odd) td.amount {
-        color: #111827;
-      }
-      .table-wrap table.sticky thead th {
-        position: sticky;
-        top: 0;
-        z-index: 2;
-      }
-      .amount {
-        text-align: right;
-      }
-      .search-bar {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin: 8px 0 4px;
-      }
-      .search-bar input {
-        flex: 1;
-        padding: 10px 12px;
-        border: 1px solid #cbd5e1;
-        border-radius: 10px;
-        font-size: 16px;
-      }
-      /* Dark mode: inputs/selects stay white with black text for readability */
-      body[data-theme="dark"] input,
-      body[data-theme="dark"] select {
-        background: #ffffff;
-        color: #111827;
-        border-color: #cbd5e1;
-      }
-      .note {
-        color: var(--muted);
-        font-size: 14px;
-      }
-      @media (max-width: 640px) {
-        .wrap {
-          padding: 16px;
-        }
-        .card {
-          padding: 16px;
-        }
-        h1 {
-          font-size: 20px;
-        }
-        .summary {
-          grid-template-columns: 1fr;
-        }
-        th,
-        td {
-          padding: 6px;
-          font-size: 14px;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="wrap">
-      <div class="card">
-        <div
-          style="
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-          "
-        >
-          <h1 style="margin: 0">
-            Tổng kết cho {{ totals.person }} - {{ totals.base_name }}
-          </h1>
-          <button
-            id="themeToggle"
-            class="btn"
-            type="button"
-            title="Chuyển chế độ sáng/tối"
-          >
-            🌙/☀️
-          </button>
-        </div>
-        <div class="accent-bar"></div>
+{% extends 'layout.html' %}
 
-        <h2>Tổng cộng</h2>
-        <ul class="summary">
-          <li>
-            Phần liên quan: <strong>{{ totals.total_shared }}</strong> VND
-          </li>
-          <li>
-            Đã trả: <strong>{{ totals.total_paid_by_person }}</strong> VND
-          </li>
-          <li>Còn nợ: <strong>{{ totals.remaining }}</strong> VND</li>
-          <li>Cutoff: {{ totals.cutoff or '—' }}</li>
-        </ul>
+{% block title %}Kết quả - Thu Chi Pro{% endblock %}
 
-        <h3>Tải xuống kết quả</h3>
-        <p>
-          {% for fmt in available_exports %}
-          <a
-            class="btn btn-export"
-            data-fmt="{{ fmt }}"
-            href="/export/{{ fmt }}?file={{ params.file }}&uploaded={{ params.uploaded }}&person={{ params.person }}&paid_on={{ params.paid_on }}&start={{ params.start }}"
-            >Tải {{ fmt|upper }}</a
-          >
-          {% endfor %}
-        </p>
-        <p>
-          <button id="shareBtn" class="btn" type="button">
-            🔗 Copy link chia sẻ
-          </button>
-        </p>
-        <h3>Tìm kiếm giao dịch</h3>
-        <div class="search-bar">
-          <input
-            id="searchBox"
-            type="search"
-            placeholder="Nhập từ khoá để lọc trong bảng…"
-          />
-          <span id="searchCount" class="note"></span>
-        </div>
-        <div
-          class="row"
-          style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px"
-        >
-          <div>
-            <label for="start_date">Từ ngày</label>
-            <input id="start_date" type="date" />
-          </div>
-          <div>
-            <label for="end_date">Đến ngày</label>
-            <input id="end_date" type="date" />
-          </div>
-          <div>
-            <label for="category">Danh mục</label>
-            <select id="category">
-              <option value="">-- Tất cả --</option>
-              {% for c in categories %}
-              <option value="{{ c }}">{{ c }}</option>
-              {% endfor %}
-            </select>
-          </div>
-        </div>
-
-        <h2>Chi tiết phần liên quan</h2>
-        <div class="table-wrap">
-          <table id="sharedTable" class="sticky">
-            <thead>
-              <tr>
-                <th data-type="date">Ngày</th>
-                <th data-type="string">Danh mục</th>
-                <th data-type="string">Ghi chú</th>
-                <th class="amount" data-type="number">Amount</th>
-                <th class="amount" data-type="number">Share</th>
-                <th>Lý do</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for r in shared_rows %}
-              <tr>
-                <td>{{ r.date }}</td>
-                <td>{{ r.category }}</td>
-                <td>{{ r.note }}</td>
-                <td class="amount">{{ r.amount }}</td>
-                <td class="amount">{{ r.share }}</td>
-                <td>{{ r.reason }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-
-        <h2>Khoản đã trả (áp dụng)</h2>
-        <div class="table-wrap">
-          <table id="appliedTable" class="sticky">
-            <thead>
-              <tr>
-                <th data-type="date">Ngày</th>
-                <th>Danh mục</th>
-                <th>Ghi chú</th>
-                <th class="amount" data-type="number">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for r in applied_payments %}
-              <tr>
-                <td>{{ r.date }}</td>
-                <td>{{ r.category }}</td>
-                <td>{{ r.note }}</td>
-                <td class="amount">{{ r.amount }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-
-        <h2>Khoản không áp dụng (trước cutoff)</h2>
-        <div class="table-wrap">
-          <table id="unappliedTable" class="sticky">
-            <thead>
-              <tr>
-                <th data-type="date">Ngày</th>
-                <th>Danh mục</th>
-                <th>Ghi chú</th>
-                <th class="amount" data-type="number">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for r in unapplied_payments %}
-              <tr>
-                <td>{{ r.date }}</td>
-                <td>{{ r.category }}</td>
-                <td>{{ r.note }}</td>
-                <td class="amount">{{ r.amount }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-
-        <p><a class="btn" href="/">↩️ Quay lại</a></p>
-      </div>
+{% block content %}
+<div class="fade-in">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem;">
+        <h2 style="margin: 0; font-size: 1.5rem;">Báo cáo cho: {{ totals.person }}</h2>
+        <a href="/" class="btn btn-outline" style="font-size: 0.875rem;">
+            <i data-lucide="arrow-left"></i> Quay lại
+        </a>
     </div>
-    <script>
-      (function () {
-        // Build export links with current filters
+
+    <!-- Dashboard Summary -->
+    <div class="dashboard-grid">
+        <div class="stat-card" style="border-left-color: var(--accent);">
+            <div class="stat-label">Tổng phần liên quan</div>
+            <div class="stat-value">{{ totals.total_shared }} <span style="font-size: 1rem; color: var(--text-secondary);">VND</span></div>
+        </div>
+        <div class="stat-card" style="border-left-color: var(--success);">
+            <div class="stat-label">Đã quyết toán</div>
+            <div class="stat-value">{{ totals.total_paid_by_person }} <span style="font-size: 1rem; color: var(--text-secondary);">VND</span></div>
+        </div>
+        <div class="stat-card" style="border-left-color: var(--error);">
+            <div class="stat-label">Còn nợ / Cần thu</div>
+            <div class="stat-value">{{ totals.remaining }} <span style="font-size: 1rem; color: var(--text-secondary);">VND</span></div>
+        </div>
+    </div>
+
+    <!-- Actions & Filters -->
+    <div class="card">
+        <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+            <div style="flex: 1; min-width: 280px;">
+                <label for="searchBox">Tìm kiếm giao dịch</label>
+                <div style="position: relative;">
+                    <i data-lucide="search" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); width: 1.25rem; color: var(--text-secondary);"></i>
+                    <input id="searchBox" placeholder="Nhập từ khoá..." style="padding-left: 2.5rem;">
+                </div>
+            </div>
+            
+            <div style="flex: 1; min-width: 200px;">
+                <label for="category">Phân loại</label>
+                <select id="category">
+                    <option value="">-- Tất cả danh mục --</option>
+                    {% for c in categories %}
+                    <option value="{{ c }}">{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button id="shareBtn" class="btn btn-outline" title="Copy link chia sẻ">
+                    <i data-lucide="share-2"></i> Chia sẻ
+                </button>
+                <div style="display: flex; gap: 0.25rem;">
+                    {% for fmt in available_exports %}
+                    <a class="btn btn-primary btn-export" data-fmt="{{ fmt }}" href="/export/{{ fmt }}?file={{ params.file }}&uploaded={{ params.uploaded }}&person={{ params.person }}&paid_on={{ params.paid_on }}&start={{ params.start }}" style="padding: 0.5rem 0.75rem; font-size: 0.75rem;">
+                        {{ fmt|upper }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Tables -->
+    <div class="card">
+        <h3>Chi tiết phần liên quan</h3>
+        <div class="table-container" style="margin-top: 1rem;">
+            <table id="sharedTable">
+                <thead>
+                    <tr>
+                        <th data-type="date">Ngày</th>
+                        <th data-type="string">Hạng mục</th>
+                        <th data-type="string">Ghi chú</th>
+                        <th class="amount" data-type="number">Giá trị</th>
+                        <th class="amount" data-type="number">Chia sẻ</th>
+                        <th>Lý do</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in shared_rows %}
+                    <tr>
+                        <td style="white-space: nowrap;">{{ r.date }}</td>
+                        <td><span style="font-size: 0.8rem; font-weight: 500; background: var(--bg-primary); padding: 0.2rem 0.5rem; border-radius: 0.4rem;">{{ r.category }}</span></td>
+                        <td>{{ r.note }}</td>
+                        <td class="amount">{{ r.amount }}</td>
+                        <td class="amount" style="color: var(--accent);">{{ r.share }}</td>
+                        <td><span class="muted">{{ r.reason }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <h3 style="margin-top: 3rem;">Khoản đã quyết toán (Áp dụng)</h3>
+        <div class="table-container" style="margin-top: 1rem;">
+            <table id="appliedTable">
+                <thead>
+                    <tr>
+                        <th data-type="date">Ngày</th>
+                        <th>Hạng mục</th>
+                        <th>Ghi chú</th>
+                        <th class="amount" data-type="number">Số tiền</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in applied_payments %}
+                    <tr>
+                        <td>{{ r.date }}</td>
+                        <td>{{ r.category }}</td>
+                        <td>{{ r.note }}</td>
+                        <td class="amount" style="color: var(--success);">{{ r.amount }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function () {
         const baseParams = {
-          file: "{{ params.file }}",
-          uploaded: "{{ params.uploaded }}",
-          person: "{{ params.person }}",
-          paid_on: "{{ params.paid_on }}",
-          start: "{{ params.start }}",
-          q: "{{ params.q or '' }}",
-          start_date: "{{ params.start_date or '' }}",
-          end_date: "{{ params.end_date or '' }}",
-          category: "{{ params.category or '' }}",
+            file: "{{ params.file }}",
+            uploaded: "{{ params.uploaded }}",
+            person: "{{ params.person }}",
+            paid_on: "{{ params.paid_on }}",
+            start: "{{ params.start }}",
+            q: "{{ params.q or '' }}",
+            category: "{{ params.category or '' }}",
         };
+
         const exportBtns = Array.from(document.querySelectorAll(".btn-export"));
         const qEl = document.getElementById("searchBox");
-        const sEl = document.getElementById("start_date");
-        const eEl = document.getElementById("end_date");
         const catEl = document.getElementById("category");
+
         function updateExportLinks() {
-          exportBtns.forEach((a) => {
-            const fmt = a.getAttribute("data-fmt");
-            const params = new URLSearchParams(baseParams);
-            if (qEl && qEl.value) params.set("q", qEl.value);
-            if (sEl && sEl.value) params.set("start_date", sEl.value);
-            if (eEl && eEl.value) params.set("end_date", eEl.value);
-            if (catEl && catEl.value) params.set("category", catEl.value);
-            a.href = "/export/" + fmt + "?" + params.toString();
-          });
+            exportBtns.forEach((a) => {
+                const fmt = a.getAttribute("data-fmt");
+                const params = new URLSearchParams(baseParams);
+                if (qEl && qEl.value) params.set("q", qEl.value);
+                if (catEl && catEl.value) params.set("category", catEl.value);
+                a.href = "/export/" + fmt + "?" + params.toString();
+            });
         }
-        // Prefill filters from URL params
-        if (qEl && baseParams.q) qEl.value = baseParams.q;
-        if (sEl && baseParams.start_date) sEl.value = baseParams.start_date;
-        if (eEl && baseParams.end_date) eEl.value = baseParams.end_date;
-        if (catEl && baseParams.category) catEl.value = baseParams.category;
-        updateExportLinks();
-        ["input", "change"].forEach((evt) => {
-          if (qEl) qEl.addEventListener(evt, updateExportLinks);
-          if (sEl) sEl.addEventListener(evt, updateExportLinks);
-          if (eEl) eEl.addEventListener(evt, updateExportLinks);
-          if (catEl) catEl.addEventListener(evt, updateExportLinks);
-        });
-        // Theme toggle
-        const body = document.body;
-        const themeKey = "thu-chi-theme";
-        const saved = localStorage.getItem(themeKey);
-        if (saved) {
-          body.setAttribute("data-theme", saved);
-        } else {
-          body.setAttribute("data-theme", "light");
-        }
-        const toggleBtn = document.getElementById("themeToggle");
-        if (toggleBtn) {
-          toggleBtn.addEventListener("click", function () {
-            const cur =
-              body.getAttribute("data-theme") === "dark" ? "light" : "dark";
-            body.setAttribute("data-theme", cur);
-            localStorage.setItem(themeKey, cur);
-          });
-        }
-        const q = document.getElementById("searchBox");
-        const countEl = document.getElementById("searchCount");
-        const tables = ["sharedTable", "appliedTable", "unappliedTable"]
-          .map((id) => document.getElementById(id))
-          .filter(Boolean);
+
+        // Search and Filter
         function filter() {
-          const term = (q.value || "").toLowerCase();
-          const sd = sEl && sEl.value ? new Date(sEl.value) : null;
-          const ed = eEl && eEl.value ? new Date(eEl.value) : null;
-          const cat = catEl && catEl.value ? catEl.value.toLowerCase() : "";
-          let visible = 0;
-          tables.forEach((tbl) => {
-            const body = tbl.tBodies[0];
-            if (!body) return;
-            const rows = body.rows;
-            for (let i = 0; i < rows.length; i++) {
-              const cells = rows[i].cells;
-              let match = term === "";
-              if (!match) {
-                for (let j = 0; j < cells.length; j++) {
-                  const txt = (cells[j].textContent || "").toLowerCase();
-                  if (txt.includes(term)) {
-                    match = true;
-                    break;
-                  }
+            const term = (qEl.value || "").toLowerCase();
+            const cat = catEl && catEl.value ? catEl.value.toLowerCase() : "";
+            const tables = ["sharedTable", "appliedTable"].map(id => document.getElementById(id)).filter(Boolean);
+
+            tables.forEach((tbl) => {
+                const rows = tbl.tBodies[0].rows;
+                for (let i = 0; i < rows.length; i++) {
+                    const cells = rows[i].cells;
+                    let match = term === "";
+                    if (!match) {
+                        for (let j = 0; j < cells.length; j++) {
+                            const txt = (cells[j].textContent || "").toLowerCase();
+                            if (txt.includes(term)) { match = true; break; }
+                        }
+                    }
+                    if (match && cat) {
+                        const rowCat = (cells[1]?.textContent || "").toLowerCase();
+                        if (!rowCat.includes(cat)) match = false;
+                    }
+                    rows[i].style.display = match ? "" : "none";
                 }
-              }
-              // Category filter (2nd column index 1)
-              if (match && cat) {
-                const rowCat = (cells[1]?.textContent || "").toLowerCase();
-                if (rowCat !== cat) match = false;
-              }
-              // Date range filter (1st column index 0)
-              if (match && (sd || ed)) {
-                const dtxt = cells[0]?.textContent || "";
-                const d = new Date(dtxt);
-                if (sd && (isNaN(d) || d < sd)) match = false;
-                if (ed && (isNaN(d) || d > ed)) match = false;
-              }
-              rows[i].style.display = match ? "" : "none";
-              if (match) visible++;
-            }
-          });
-          if (countEl) {
-            countEl.textContent = term ? `Kết quả hiển thị: ${visible}` : "";
-          }
-        }
-        if (q) q.addEventListener("input", filter);
-        if (sEl) sEl.addEventListener("change", filter);
-        if (eEl) eEl.addEventListener("change", filter);
-        if (catEl) catEl.addEventListener("change", filter);
-        // Apply initial filter if values preset by URL
-        filter();
-
-        // Copy remaining button
-        const copyBtn = document.createElement("button");
-        copyBtn.textContent = "📋 Copy số còn nợ";
-        copyBtn.className = "btn";
-        const summaryList = document.querySelector(".summary");
-        if (summaryList) {
-          summaryList.parentNode.insertBefore(copyBtn, summaryList.nextSibling);
-          copyBtn.addEventListener("click", () => {
-            const remainingItem = Array.from(summaryList.children).find((li) =>
-              li.textContent.includes("Còn nợ")
-            );
-            const text = remainingItem
-              ? remainingItem.textContent.replace(/[^0-9.]/g, "").trim()
-              : "";
-            const value = text || "{{ totals.remaining }}";
-            const done = () => {
-              copyBtn.textContent = "✅ Đã copy";
-              setTimeout(
-                () => (copyBtn.textContent = "📋 Copy số còn nợ"),
-                1500
-              );
-            };
-            if (navigator.clipboard && window.isSecureContext) {
-              navigator.clipboard
-                .writeText(value)
-                .then(done)
-                .catch(() => fallbackCopy(value, done));
-            } else {
-              fallbackCopy(value, done);
-            }
-          });
+            });
+            updateExportLinks();
         }
 
-        function fallbackCopy(value, cb) {
-          try {
-            const ta = document.createElement("textarea");
-            ta.value = value;
-            ta.setAttribute("readonly", "");
-            ta.style.position = "absolute";
-            ta.style.left = "-9999px";
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand("copy");
-            document.body.removeChild(ta);
-            cb && cb();
-          } catch (e) {
-            alert("Không thể copy. Giá trị: " + value);
-          }
-        }
+        qEl && qEl.addEventListener("input", filter);
+        catEl && catEl.addEventListener("change", filter);
 
-        // Share link button
+        // Share button
         const shareBtn = document.getElementById("shareBtn");
-        if (shareBtn) {
-          shareBtn.addEventListener("click", () => {
+        shareBtn && shareBtn.addEventListener("click", () => {
             const params = new URLSearchParams(baseParams);
             if (qEl && qEl.value) params.set("q", qEl.value);
-            if (sEl && sEl.value) params.set("start_date", sEl.value);
-            if (eEl && eEl.value) params.set("end_date", eEl.value);
             if (catEl && catEl.value) params.set("category", catEl.value);
             const url = `${location.origin}/result?${params.toString()}`;
-            const done = () => {
-              shareBtn.textContent = "✅ Đã copy link";
-              setTimeout(
-                () => (shareBtn.textContent = "🔗 Copy link chia sẻ"),
-                1500
-              );
-            };
-            if (navigator.clipboard && window.isSecureContext) {
-              navigator.clipboard
-                .writeText(url)
-                .then(done)
-                .catch(() => fallbackCopy(url, done));
-            } else {
-              fallbackCopy(url, done);
-            }
-          });
-        }
-
-        // Column sorting
-        function parseVal(type, text) {
-          const t = (text || "").trim();
-          if (type === "number") {
-            const n = Number(t.replace(/[^0-9.-]/g, ""));
-            return isNaN(n) ? 0 : n;
-          }
-          if (type === "date") {
-            const d = new Date(t);
-            return d.getTime() || 0;
-          }
-          return t.toLowerCase();
-        }
-        function makeSortable(tbl) {
-          const thead = tbl.tHead;
-          if (!thead) return;
-          const headers = thead.rows[0].cells;
-          for (let i = 0; i < headers.length; i++) {
-            const th = headers[i];
-            th.style.cursor = "pointer";
-            th.title = "Nhấn để sắp xếp";
-            let asc = true;
-            th.addEventListener("click", function () {
-              const type = th.getAttribute("data-type") || "string";
-              const rows = Array.from(tbl.tBodies[0].rows);
-              rows.sort((a, b) => {
-                const av = parseVal(type, a.cells[i]?.textContent);
-                const bv = parseVal(type, b.cells[i]?.textContent);
-                if (av < bv) return asc ? -1 : 1;
-                if (av > bv) return asc ? 1 : -1;
-                return 0;
-              });
-              asc = !asc;
-              const frag = document.createDocumentFragment();
-              rows.forEach((r) => frag.appendChild(r));
-              tbl.tBodies[0].appendChild(frag);
+            navigator.clipboard.writeText(url).then(() => {
+                alert("Đã sao chép link báo cáo!");
             });
-          }
-        }
-        tables.forEach(makeSortable);
-      })();
-    </script>
-  </body>
-</html>
+        });
+    })();
+</script>
+{% endblock %}

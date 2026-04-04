@@ -37,6 +37,10 @@ except Exception:
 
 app = Flask(__name__)
 
+# Ensure required directories exist
+for d in [TRANSACTIONS_DIR, UPLOADS_DIR]:
+    os.makedirs(d, exist_ok=True)
+
 
 def list_transaction_files():
     if not os.path.isdir(TRANSACTIONS_DIR):
@@ -586,4 +590,8 @@ def table_compute():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Sử dụng biến môi trường PORT cho Render/Heroku
+    port = int(os.environ.get('PORT', 5000))
+    # Trong production, debug sẽ dựa trên biến môi trường
+    debug = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(host='0.0.0.0', port=port, debug=debug)

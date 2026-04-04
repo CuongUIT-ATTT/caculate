@@ -1,647 +1,150 @@
-<!DOCTYPE html>
-<html lang="vi">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Chỉnh sửa bảng giao dịch</title>
-    <style>
-      :root {
-        --bg: #ffffff;
-        --bg-alt: #f8fafc;
-        --fg: #111827;
-        --muted: #6b7280;
-        --border: #e5e7eb;
-        --accent: #2563eb;
-        --accent-hover: #1d4ed8;
-      }
-      body[data-theme="dark"] {
-        --bg: #0b1220;
-        --bg-alt: #0f172a;
-        --fg: #e5e7eb;
-        --muted: #94a3b8;
-        --border: #1f2937;
-        --accent: #60a5fa;
-        --accent-hover: #3b82f6;
-      }
-      body {
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial,
-          sans-serif;
-        margin: 0;
-        background: var(--bg);
-        color: var(--fg);
-      }
-      .wrap {
-        padding: 24px;
-      }
-      .card {
-        max-width: 1100px;
-        margin: 0 auto;
-        padding: 24px;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        background: #fff;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-      }
-      body[data-theme="dark"] .card {
-        background: #0f172a;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-      }
-      h1 {
-        margin-top: 0;
-        font-size: 22px;
-      }
-      .btn {
-        display: inline-block;
-        margin: 6px 6px 6px 0;
-        padding: 10px 14px;
-        background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-        color: #fff;
-        border-radius: 9999px;
-        text-decoration: none;
-        border: none;
-        cursor: pointer;
-        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
-      }
-      .row {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 12px;
-      }
-      input,
-      select {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #cbd5e1;
-        border-radius: 10px;
-        font-size: 16px;
-        background: #ffffff;
-        color: #111827;
-        box-sizing: border-box;
-      }
-      body[data-theme="dark"] input,
-      body[data-theme="dark"] select {
-        background: #ffffff;
-        color: #111827;
-        border-color: #cbd5e1;
-      }
-      .table-wrap {
-        overflow-x: auto;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 12px;
-        min-width: 720px;
-        table-layout: fixed;
-      }
-      th,
-      td {
-        border: 1px solid var(--border);
-        padding: 8px;
-        text-align: left;
-        overflow: visible;
-        vertical-align: top;
-      }
-      td {
-        white-space: normal;
-        word-break: break-word;
-      }
-      th {
-        background: var(--bg-alt);
-      }
-      .amount {
-        text-align: right;
-      }
-      textarea {
-        width: 100%;
-        min-height: 38px;
-        resize: vertical;
-        box-sizing: border-box;
-      }
-      .cat-cell {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .cat-badge {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        color: #fff;
-        font-size: 14px;
-      }
-      .accent-bar {
-        height: 4px;
-        background: var(--accent);
-        border-radius: 9999px;
-        margin: 6px 0 16px;
-      }
-      .note {
-        color: var(--muted);
-        font-size: 14px;
-      }
-      @media (max-width: 640px) {
-        .wrap {
-          padding: 16px;
-        }
-        .card {
-          padding: 16px;
-        }
-        h1 {
-          font-size: 20px;
-        }
-        th,
-        td {
-          padding: 6px;
-          font-size: 14px;
-        }
-        .row {
-          grid-template-columns: 1fr;
-        }
-      }
-      .note {
-        color: var(--muted);
-        font-size: 14px;
-      }
-      @media (max-width: 640px) {
-        .wrap {
-          padding: 16px;
-        }
-        .card {
-          padding: 16px;
-        }
-        h1 {
-          font-size: 20px;
-        }
-        th,
-        td {
-          padding: 6px;
-          font-size: 14px;
-        }
-        .row {
-          grid-template-columns: 1fr;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="wrap">
-      <div class="card">
-        <div
-          style="
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-          "
-        >
-          <h1 style="margin: 0">
-            Chỉnh sửa bảng giao dịch (PDF: {{ source_pdf }})
-          </h1>
-          <button
-            id="themeToggle"
-            class="btn"
-            type="button"
-            title="Chuyển chế độ sáng/tối"
-          >
-            🌙/☀️
-          </button>
-        </div>
-        <div class="accent-bar"></div>
-        <form id="tableForm" method="post">
-          <div class="row">
-            <div>
-              <label for="person_tbl">Tên người</label>
-              <input id="person_tbl" name="person" value="{{ person }}" />
-            </div>
-            <div>
-              <label for="paid_on_tbl">Ngày đã trả gần nhất (YYYY-MM-DD)</label>
-              <input id="paid_on_tbl" name="paid_on" value="{{ paid_on }}" />
-            </div>
-            <div>
-              <label for="start_tbl">Ngày bắt đầu tính (YYYY-MM-DD)</label>
-              <input id="start_tbl" name="start" value="{{ start }}" />
-            </div>
-          </div>
+{% extends 'layout.html' %}
 
-          <div style="margin-top: 12px">
-            <button type="button" class="btn" id="addRowBtn">
-              ➕ Thêm dòng
-            </button>
-            <button type="button" class="btn" id="clearEmptyBtn">
-              🧹 Xoá dòng trống
-            </button>
-          </div>
+{% block title %}Chỉnh sửa giao dịch - Thu Chi Pro{% endblock %}
 
-          <div class="row" style="margin-top: 12px">
-            <div>
-              <label for="searchBox">Tìm kiếm</label>
-              <input id="searchBox" placeholder="Nhập từ khoá để lọc…" />
-            </div>
-            <div>
-              <label for="typeFilter">Loại danh mục</label>
-              <select id="typeFilter">
-                <option value="">-- Tất cả --</option>
-                <option value="income">Thu nhập</option>
-                <option value="expense">Chi phí</option>
-              </select>
-            </div>
-            <div>
-              <label>&nbsp;</label>
-              <button type="button" class="btn" id="sortAmountAsc">
-                ⬇️ Sắp xếp Amount tăng dần
-              </button>
-            </div>
-          </div>
-
-          <div class="table-wrap">
-            <table id="editTable">
-              <colgroup>
-                <col style="width: 16%" />
-                <col style="width: 28%" />
-                <col style="width: 30%" />
-                <col style="width: 16%" />
-                <col style="width: 10%" />
-              </colgroup>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Category name</th>
-                  <th>Note</th>
-                  <th class="amount" id="amountHeader" title="Nhấn để sắp xếp">
-                    Amount
-                  </th>
-                  <th>Hành động</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for r in records %}
-                <tr>
-                  <td><input name="date[]" value="{{ r['Date'] }}" /></td>
-                  <td>
-                    <div class="cat-cell">
-                      <span
-                        class="cat-badge"
-                        data-icon=""
-                        title="Danh mục"
-                      ></span>
-                      <select
-                        class="category-select"
-                        name="category[]"
-                        data-initial="{{ r['Category name'] }}"
-                      ></select>
-                    </div>
-                  </td>
-                  <td><textarea name="note[]">{{ r['Note'] }}</textarea></td>
-                  <td class="amount">
-                    <input name="amount[]" value="{{ r['Amount'] }}" />
-                  </td>
-                  <td>
-                    <button type="button" class="btn btn-del">❌ Xoá</button>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-
-          <div style="margin-top: 16px">
-            <button formaction="/table/export" formmethod="post" class="btn">
-              💾 Xuất CSV
-            </button>
-            <button formaction="/table/compute" formmethod="post" class="btn">
-              🧮 Dùng để tính toán
-            </button>
-            <a href="/" class="btn">↩️ Quay lại</a>
-          </div>
-        </form>
-      </div>
+{% block content %}
+<div class="fade-in">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem;">
+        <h2 style="margin: 0; font-size: 1.5rem;">Kiểm tra & Chỉnh sửa: <span style="font-weight: 400; color: var(--text-secondary);">{{ source_pdf }}</span></h2>
+        <a href="/" class="btn btn-outline" style="font-size: 0.875rem;">
+            <i data-lucide="x"></i> Hủy bỏ
+        </a>
     </div>
-    <script>
-      (function () {
-        // Theme toggle (shared key with index/result pages)
-        const body = document.body;
-        const themeKey = "thu-chi-theme";
-        const saved = localStorage.getItem(themeKey);
-        if (saved) {
-          body.setAttribute("data-theme", saved);
-        } else {
-          body.setAttribute("data-theme", "light");
-        }
-        const toggleBtn = document.getElementById("themeToggle");
-        if (toggleBtn) {
-          toggleBtn.addEventListener("click", function () {
-            const cur =
-              body.getAttribute("data-theme") === "dark" ? "light" : "dark";
-            body.setAttribute("data-theme", cur);
-            localStorage.setItem(themeKey, cur);
-          });
-        }
 
+    <!-- Quick Options -->
+    <div class="card">
+        <form id="tableForm" method="post">
+            <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                <div class="form-group">
+                    <label for="person_tbl">Đối tượng tính</label>
+                    <input id="person_tbl" name="person" value="{{ person }}">
+                </div>
+                <div class="form-group">
+                    <label for="paid_on_tbl">Ngày trả gần nhất</label>
+                    <input id="paid_on_tbl" name="paid_on" value="{{ paid_on }}" type="date">
+                </div>
+                <div class="form-group">
+                    <label for="start_tbl">Ngày bắt đầu tính</label>
+                    <input id="start_tbl" name="start" value="{{ start }}" type="date">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                <button type="button" class="btn btn-primary" id="addRowBtn">
+                    <i data-lucide="plus-circle"></i> Thêm dòng mới
+                </button>
+                <button type="button" class="btn btn-outline" id="clearEmptyBtn">
+                    <i data-lucide="trash"></i> Xóa dòng trống
+                </button>
+            </div>
+
+            <!-- Table Editor -->
+            <div class="table-container" style="margin-top: 2rem;">
+                <table id="editTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 15%;">Ngày</th>
+                            <th style="width: 25%;">Danh mục</th>
+                            <th style="width: 35%;">Ghi chú</th>
+                            <th class="amount" style="width: 15%;">Số tiền</th>
+                            <th style="width: 10%;">Gỡ bỏ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in records %}
+                        <tr>
+                            <td><input name="date[]" value="{{ r['Date'] }}" style="padding: 0.4rem; font-size: 0.85rem;"></td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <div class="cat-badge" style="width: 1.5rem; height: 1.5rem; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;"></div>
+                                    <select class="category-select" name="category[]" data-initial="{{ r['Category name'] }}" style="padding: 0.4rem; font-size: 0.85rem; flex: 1;"></select>
+                                </div>
+                            </td>
+                            <td><textarea name="note[]" style="padding: 0.4rem; font-size: 0.85rem; min-height: 2.5rem; vertical-align: middle;">{{ r['Note'] }}</textarea></td>
+                            <td class="amount"><input name="amount[]" value="{{ r['Amount'] }}" style="text-align: right; font-family: monospace; font-weight: 600; padding: 0.4rem; font-size: 0.85rem;"></td>
+                            <td style="text-align: center;">
+                                <button type="button" class="btn-del" style="background: none; border: none; color: var(--error); cursor: pointer;">
+                                    <i data-lucide="trash-2" style="width: 1.25rem;"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Global Actions -->
+            <div style="margin-top: 3rem; display: flex; justify-content: flex-end; gap: 1rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+                <button formaction="/table/export" formmethod="post" class="btn btn-outline">
+                    <i data-lucide="download"></i> Tải xuống CSV
+                </button>
+                <button formaction="/table/compute" formmethod="post" class="btn btn-primary" style="padding: 0.75rem 2.5rem;">
+                    <i data-lucide="check-check"></i> Xác nhận & Xem báo cáo
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function () {
         const tbl = document.getElementById("editTable");
         const addBtn = document.getElementById("addRowBtn");
         const clearBtn = document.getElementById("clearEmptyBtn");
-        const searchBox = document.getElementById("searchBox");
-        const typeFilter = document.getElementById("typeFilter");
-        const sortAmountAscBtn = document.getElementById("sortAmountAsc");
-        const amountHeader = document.getElementById("amountHeader");
 
-        // Danh mục theo ảnh minh hoạ
-        const incomeCategories = [
-          "Business",
-          "Extra Income",
-          "Gifts",
-          "Insurance Payout",
-          "Khác",
-          "Loan",
-          "Other",
-          "Parental Leave",
-          "Salary",
-        ];
-        const expenseCategories = [
-          "Ăn uống chung với Quân",
-          "Beauty",
-          "Bills & Fees",
-          "Car",
-          "Education",
-          "Entertainment",
-          "Family & Personal",
-          "Food & Drink",
-          "Gifts",
-          "Groceries",
-          "Healthcare",
-          "Home",
-          "Khác",
-          "Other",
-          "Shopping",
-          "Sport & Hobbies",
-          "Transport",
-          "Travel",
-          "Work",
-        ];
+        const incomeCategories = ["Business", "Extra Income", "Gifts", "Insurance Payout", "Khác", "Loan", "Other", "Parental Leave", "Salary"];
+        const expenseCategories = ["Ăn uống chung với Quân", "Beauty", "Bills & Fees", "Car", "Education", "Entertainment", "Family & Personal", "Food & Drink", "Gifts", "Groceries", "Healthcare", "Home", "Khác", "Other", "Shopping", "Sport & Hobbies", "Transport", "Travel", "Work"];
 
-        // Biểu tượng + màu cho danh mục (emoji + màu gần giống hình)
-        const categoryMeta = {
-          // Thu nhập
-          Business: { icon: "💼", color: "#f59e0b" },
-          "Extra Income": { icon: "💰", color: "#10b981" },
-          Gifts: { icon: "🎁", color: "#22c55e" },
-          "Insurance Payout": { icon: "🛡️", color: "#60a5fa" },
-          Khác: { icon: "📦", color: "#6b7280" },
-          Loan: { icon: "🏦", color: "#ef4444" },
-          Other: { icon: "🗂️", color: "#9ca3af" },
-          "Parental Leave": { icon: "👶", color: "#f472b6" },
-          Salary: { icon: "💵", color: "#22c55e" },
-          // Chi phí
-          "Ăn uống chung với Quân": { icon: "🍽️", color: "#f97316" },
-          Beauty: { icon: "💄", color: "#ec4899" },
-          "Bills & Fees": { icon: "💳", color: "#3b82f6" },
-          Car: { icon: "🚗", color: "#60a5fa" },
-          Education: { icon: "🎓", color: "#a855f7" },
-          Entertainment: { icon: "🎮", color: "#f59e0b" },
-          "Family & Personal": { icon: "👪", color: "#06b6d4" },
-          "Food & Drink": { icon: "🍔", color: "#f97316" },
-          Groceries: { icon: "🛒", color: "#22c55e" },
-          Healthcare: { icon: "🩺", color: "#ef4444" },
-          Home: { icon: "🏠", color: "#f59e0b" },
-          Shopping: { icon: "🛍️", color: "#f472b6" },
-          "Sport & Hobbies": { icon: "⚽", color: "#06b6d4" },
-          Transport: { icon: "🚌", color: "#60a5fa" },
-          Travel: { icon: "✈️", color: "#3b82f6" },
-          Work: { icon: "💼", color: "#6b7280" },
-        };
-
-        function populateCategorySelect(sel, initial, type) {
-          // type: 'income' | 'expense' | '' (both)
-          sel.innerHTML = "";
-          const empty = document.createElement("option");
-          empty.value = "";
-          empty.textContent = "(không chọn)";
-          sel.appendChild(empty);
-
-          if (!type || type === "income") {
-            const ogIncome = document.createElement("optgroup");
-            ogIncome.label = "Thu nhập";
-            incomeCategories.forEach((c) => {
-              const o = document.createElement("option");
-              o.value = c;
-              o.textContent = c;
-              ogIncome.appendChild(o);
-            });
-            sel.appendChild(ogIncome);
-          }
-
-          if (!type || type === "expense") {
-            const ogExpense = document.createElement("optgroup");
-            ogExpense.label = "Chi phí";
-            expenseCategories.forEach((c) => {
-              const o = document.createElement("option");
-              o.value = c;
-              o.textContent = c;
-              ogExpense.appendChild(o);
-            });
-            sel.appendChild(ogExpense);
-          }
-
-          if (initial) sel.value = initial;
+        function populateCategories(sel, initial) {
+            sel.innerHTML = '<option value="">-- Chọn danh mục --</option>';
+            const iGroup = document.createElement("optgroup"); iGroup.label = "THU NHẬP";
+            incomeCategories.forEach(c => { const o = document.createElement("option"); o.value = c; o.textContent = c; iGroup.appendChild(o); });
+            const eGroup = document.createElement("optgroup"); eGroup.label = "CHI PHÍ";
+            expenseCategories.forEach(c => { const o = document.createElement("option"); o.value = c; o.textContent = c; eGroup.appendChild(o); });
+            sel.appendChild(iGroup); sel.appendChild(eGroup);
+            if (initial) sel.value = initial;
         }
 
-        function parseAmount(val) {
-          const s = String(val || "").trim();
-          if (!s) return 0;
-          let t = s;
-          let neg = false;
-          if (t.startsWith("(") && t.endsWith(")")) {
-            neg = true;
-            t = t.slice(1, -1);
-          }
-          t = t.replace(/\s+/g, "").replace(/[^0-9.,-]/g, "");
-          if (t.includes(",") && t.includes(".")) {
-            if (t.lastIndexOf(",") > t.lastIndexOf(".")) {
-              t = t.replace(/\./g, "").replace(/,/g, ".");
-            } else {
-              t = t.replace(/,/g, "");
-            }
-          } else {
-            if (t.includes(",") && t.split(",").pop().length <= 3) {
-              t = t.replace(/,/g, ".");
-            } else {
-              t = t.replace(/,/g, "");
-            }
-          }
-          const num = Number(t);
-          if (isNaN(num)) return 0;
-          return neg ? -num : num;
+        function initRow(tr) {
+            const sel = tr.querySelector(".category-select");
+            if (sel) populateCategories(sel, sel.dataset.initial);
+            lucide.createIcons();
+            
+            const delBtn = tr.querySelector(".btn-del");
+            delBtn && delBtn.addEventListener("click", () => tr.remove());
         }
 
-        function defaultCategoryForAmount(a) {
-          const n = parseAmount(a);
-          if (n > 0) return "Extra Income"; // mặc định Thu nhập
-          if (n < 0) return "Khác"; // mặc định Chi phí
-          return "";
-        }
+        document.querySelectorAll("#editTable tbody tr").forEach(initRow);
 
-        function updateCategoryBadge(row) {
-          const sel = row.querySelector(".category-select");
-          const badge = row.querySelector(".cat-badge");
-          const meta = categoryMeta[sel?.value || ""];
-          if (badge) {
-            if (meta) {
-              badge.textContent = meta.icon;
-              badge.style.background = meta.color;
-              badge.style.opacity = "1";
-            } else {
-              badge.textContent = "";
-              badge.style.background = "#e5e7eb";
-              badge.style.opacity = "0.7";
-            }
-          }
-        }
-        function addRow(vals) {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td><input name=\"date[]\" value=\"${vals?.date || ""}\" /></td>
-            <td><select class=\"category-select\" name=\"category[]\"></select></td>
-            <td><textarea name=\"note[]\">${vals?.note || ""}</textarea></td>
-            <td class=\"amount\"><input name=\"amount[]\" value=\"${
-              vals?.amount || ""
-            }\" /></td>
-            <td><button type=\"button\" class=\"btn btn-del\">❌ Xoá</button></td>
-          `;
-          tbl.tBodies[0].appendChild(tr);
-          const sel = tr.querySelector(".category-select");
-          let initial = vals?.category || "";
-          const a0 = vals?.amount || "";
-          const n0 = parseAmount(a0);
-          const type0 = n0 > 0 ? "income" : n0 < 0 ? "expense" : "";
-          if (!initial) initial = defaultCategoryForAmount(a0);
-          populateCategorySelect(sel, initial, type0);
-          updateCategoryBadge(tr);
-          sel.addEventListener("change", () => updateCategoryBadge(tr));
-          const amtInput = tr.querySelector('input[name="amount[]"]');
-          function updateOptions() {
-            const val = amtInput.value;
-            const n = parseAmount(val);
-            const type = n > 0 ? "income" : n < 0 ? "expense" : "";
-            const current = sel.value;
-            populateCategorySelect(sel, current, type);
-            if (!sel.value) sel.value = defaultCategoryForAmount(val);
-            updateCategoryBadge(tr);
-          }
-          amtInput && amtInput.addEventListener("input", updateOptions);
-        }
-        // Populate existing category selects
-        const existingSelects = Array.from(
-          document.querySelectorAll(".category-select")
-        );
-        existingSelects.forEach((sel) => {
-          const row = sel.closest("tr");
-          const amtInput = row.querySelector('input[name="amount[]"]');
-          const a = amtInput ? amtInput.value : "";
-          const n = parseAmount(a);
-          const type = n > 0 ? "income" : n < 0 ? "expense" : "";
-          populateCategorySelect(
-            sel,
-            sel.getAttribute("data-initial") || "",
-            type
-          );
-          updateCategoryBadge(row);
-          sel.addEventListener("change", () => updateCategoryBadge(row));
-          function updateOptions() {
-            const val = amtInput.value;
-            const n = parseAmount(val);
-            const type = n > 0 ? "income" : n < 0 ? "expense" : "";
-            const current = sel.value;
-            populateCategorySelect(sel, current, type);
-            if (!sel.value) sel.value = defaultCategoryForAmount(val);
-            updateCategoryBadge(row);
-          }
-          amtInput && amtInput.addEventListener("input", updateOptions);
+        addBtn && addBtn.addEventListener("click", () => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td><input name="date[]" style="padding: 0.4rem; font-size: 0.85rem;"></td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div class="cat-badge" style="width: 1.5rem; height: 1.5rem; border-radius: 50%; background: #e2e8f0;"></div>
+                        <select class="category-select" name="category[]" style="padding: 0.4rem; font-size: 0.85rem; flex: 1;"></select>
+                    </div>
+                </td>
+                <td><textarea name="note[]" style="padding: 0.4rem; font-size: 0.85rem; min-height: 2.5rem;"></textarea></td>
+                <td class="amount"><input name="amount[]" style="text-align: right; font-family: monospace; font-weight: 600; padding: 0.4rem; font-size: 0.85rem;"></td>
+                <td style="text-align: center;">
+                    <button type="button" class="btn-del" style="background: none; border: none; color: var(--error); cursor: pointer;">
+                        <i data-lucide="trash-2" style="width: 1.25rem;"></i>
+                    </button>
+                </td>
+            `;
+            tbl.tBodies[0].appendChild(tr);
+            initRow(tr);
         });
 
-        addBtn && addBtn.addEventListener("click", () => addRow());
-        tbl &&
-          tbl.addEventListener("click", (e) => {
-            if (e.target && e.target.classList.contains("btn-del")) {
-              const tr = e.target.closest("tr");
-              tr && tr.remove();
-            }
-          });
-        clearBtn &&
-          clearBtn.addEventListener("click", () => {
-            const rows = Array.from(tbl.tBodies[0].rows);
-            rows.forEach((r) => {
-              const inputs = Array.from(r.querySelectorAll("input"));
-              const allEmpty = inputs.every(
-                (i) => (i.value || "").trim() === ""
-              );
-              if (allEmpty) r.remove();
-            });
-          });
-
-        // Filter & search
-        function getRowCategoryType(row) {
-          const sel = row.querySelector(".category-select");
-          const v = sel ? sel.value : "";
-          if (incomeCategories.includes(v)) return "income";
-          if (expenseCategories.includes(v)) return "expense";
-          return "";
-        }
-        function rowMatchesSearch(row, term) {
-          if (!term) return true;
-          term = term.toLowerCase();
-          const fields = Array.from(row.querySelectorAll("input, select"));
-          const txt = fields
-            .map((el) => (el.value || "").toLowerCase())
-            .join(" ");
-          return txt.includes(term);
-        }
-        function applyFilter() {
-          const term = (searchBox?.value || "").trim();
-          const type = typeFilter?.value || "";
-          const rows = Array.from(tbl.tBodies[0].rows);
-          rows.forEach((r) => {
-            let show = rowMatchesSearch(r, term);
-            if (show && type) {
-              const t = getRowCategoryType(r);
-              show = t === type;
-            }
-            r.style.display = show ? "" : "none";
-          });
-        }
-        searchBox && searchBox.addEventListener("input", applyFilter);
-        typeFilter && typeFilter.addEventListener("change", applyFilter);
-        applyFilter();
-
-        // Sort Amount via header click: toggle asc/desc
-        let amountAsc = true;
-        function sortAmount(asc) {
-          const rows = Array.from(tbl.tBodies[0].rows);
-          rows.sort((a, b) => {
-            const av = parseAmount(
-              a.querySelector('input[name="amount[]"]').value
-            );
-            const bv = parseAmount(
-              b.querySelector('input[name="amount[]"]').value
-            );
-            return asc ? av - bv : bv - av;
-          });
-          const frag = document.createDocumentFragment();
-          rows.forEach((r) => frag.appendChild(r));
-          tbl.tBodies[0].appendChild(frag);
-        }
-        amountHeader &&
-          amountHeader.addEventListener("click", () => {
-            sortAmount(amountAsc);
-            amountAsc = !amountAsc;
-          });
-        // Legacy button still available
-        sortAmountAscBtn &&
-          sortAmountAscBtn.addEventListener("click", () => sortAmount(true));
-      })();
-    </script>
-  </body>
-</html>
+        clearBtn && clearBtn.addEventListener("click", () => {
+             Array.from(tbl.tBodies[0].rows).forEach(r => {
+                if (!Array.from(r.querySelectorAll("input, textarea")).some(i => i.value.trim())) r.remove();
+             });
+        });
+    })();
+</script>
+{% endblock %}

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Thu Chi Pro{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    {% block extra_head %}{% endblock %}
+</head>
+<body data-theme="light">
+    <div class="container fade-in">
+        <header style="margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between;">
+            <div>
+                <h1><a href="/" style="text-decoration: none; color: inherit;">Thu Chi Pro</a></h1>
+                <p class="muted">Quản lý giao dịch tài chính thông minh</p>
+            </div>
+            <div>
+                 <button id="theme-toggle" class="btn" title="Chuyển đổi Sáng/Tối">
+                    <i data-lucide="sun" id="sun-icon"></i>
+                    <i data-lucide="moon" id="moon-icon" style="display: none;"></i>
+                 </button>
+            </div>
+        </header>
+
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+
+        <footer style="margin-top: 4rem; text-align: center; padding: 2rem 0; border-top: 1px solid var(--border);" class="muted">
+            <p>&copy; 2026 Thu Chi Pro. Thiết kế bởi Antigravity.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Lucide icons initialization
+        lucide.createIcons();
+
+        // Theme management
+        const themeToggle = document.getElementById('theme-toggle');
+        const sunIcon = document.getElementById('sun-icon');
+        const moonIcon = document.getElementById('moon-icon');
+        const body = document.body;
+        const themeKey = 'thu-chi-theme';
+
+        function setTheme(theme) {
+            body.setAttribute('data-theme', theme);
+            localStorage.setItem(themeKey, theme);
+            if (theme === 'dark') {
+                sunIcon.style.display = 'none';
+                moonIcon.style.display = 'block';
+            } else {
+                sunIcon.style.display = 'block';
+                moonIcon.style.display = 'none';
+            }
+        }
+
+        const savedTheme = localStorage.getItem(themeKey) || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        setTheme(savedTheme);
+
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            setTheme(newTheme);
+            lucide.createIcons(); // Refresh icons
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
