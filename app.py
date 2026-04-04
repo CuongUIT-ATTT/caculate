@@ -344,25 +344,51 @@ def export(fmt: str):
     if fmt == 'pdf' and HAS_REPORTLAB:
         bytes_io = io.BytesIO()
         
-        # Đăng ký phông chữ tiếng Việt (Arial từ Windows)
-        font_path = "C:\\Windows\\Fonts\\arial.ttf"
-        font_name = "Arial"
-        if not os.path.exists(font_path):
-             # Fallback nếu không chạy trên Windows hoặc không tìm thấy font
-             font_name = "Helvetica"
-        else:
-             pdfmetrics.registerFont(TTFont('Arial', font_path))
-             pdfmetrics.registerFont(TTFont('Arial-Bold', "C:\\Windows\\Fonts\\arialbd.ttf"))
+        # Đăng ký phông chữ Unicode hỗ trợ tiếng Việt (ưu tiên Arial từ Windows)
+        font_dir = os.path.join(os.environ.get('WINDIR', 'C:\\Windows'), 'Fonts')
+        font_paths = [
+            os.path.join(font_dir, 'arial.ttf'),
+            os.path.join(font_dir, 'tahoma.ttf'),
+            os.path.join(font_dir, 'times.ttf')
+        ]
+        
+        font_name = "Helvetica" # Mặc định nếu không tìm thấy font nào
+        font_registered = False
+        
+        for fp in font_paths:
+            if os.path.exists(fp):
+                try:
+                    f_base = os.path.basename(fp).split('.')[0].capitalize()
+                    pdfmetrics.registerFont(TTFont(f_base, fp))
+                    # Thử đăng ký Bold nếu có
+                    fp_bold = fp.lower().replace('.ttf', 'bd.ttf')
+                    if os.path.exists(fp_bold):
+                        pdfmetrics.registerFont(TTFont(f"{f_base}-Bold", fp_bold))
+                    else:
+                        # Fallback Bold sang Regular nếu không tìm thấy file Bold riêng
+                        pdfmetrics.registerFont(TTFont(f"{f_base}-Bold", fp))
+                    
+                    font_name = f_base
+                    font_registered = True
+                    break
+                except:
+                    continue
 
         doc = SimpleDocTemplate(bytes_io, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
         elements = []
         styles = getSampleStyleSheet()
         
+        # ÁP DỤNG FONT CHO TOÀN BỘ STYLESHEET
+        for s_name in styles.byName:
+            styles[s_name].fontName = font_name
+            if 'Bold' in s_name or 'Heading' in s_name:
+                styles[s_name].fontName = f"{font_name}-Bold" if font_registered else "Helvetica-Bold"
+
         # Tiêu đề báo cáo
         title_style = ParagraphStyle(
             'TitleStyle',
             parent=styles['Heading1'],
-            fontName=f"{font_name}-Bold" if font_name == "Arial" else "Helvetica-Bold",
+            fontName=f"{font_name}-Bold" if font_registered else "Helvetica-Bold",
             fontSize=18,
             alignment=1, # Center
             spaceAfter=20
@@ -383,10 +409,10 @@ def export(fmt: str):
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#3b82f6")),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), f"{font_name}-Bold" if font_name == "Arial" else "Helvetica-Bold"),
+            ('FONTNAME', (0, 0), (-1, 0), f"{font_name}-Bold" if font_registered else "Helvetica-Bold"),
+            ('FONTNAME', (0, 1), (-1, -1), font_name), # Font cho dữ liệu số
             ('FONTSIZE', (0, 0), (-1, -1), 10),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
             ('GRID', (0, 0), (-1, -1), 1, colors.grey)
         ]))
         elements.append(t_summary)
@@ -396,8 +422,10 @@ def export(fmt: str):
         elements.append(Paragraph("Chi tiết phần liên quan", styles['Heading2']))
         data = [["Ngày", "Hạng mục", "Ghi chú", "Amount", "Share"]]
         for r in filtered['shared_rows']:
+            # Rút gọn ngày nếu quá dài (VD: 2026-03-01T00:00:00 -> 2026-03-01)
+            d_short = r['date'].split('T')[0] if 'T' in r['date'] else r['date']
             data.append([
-                r['date'], 
+                d_short, 
                 r['category'], 
                 r['note'] or '', 
                 r['amount'], 
@@ -405,16 +433,17 @@ def export(fmt: str):
             ])
         
         # Cấu hình chiều rộng cột
-        t_shared = Table(data, colWidths=[70, 100, 180, 80, 80], repeatRows=1)
+        t_shared = Table(data, colWidths=[75, 95, 175, 80, 80], repeatRows=1)
         t_shared.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#0f172a")),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('ALIGN', (3, 1), (-1, -1), 'RIGHT'), # Căn phải cột tiền
-            ('FONTNAME', (0, 0), (-1, 0), f"{font_name}-Bold" if font_name == "Arial" else "Helvetica-Bold"),
-            ('FONTNAME', (0, 1), (-1, -1), font_name), # Phông cho nội dung
+            ('ALIGN', (4, 1), (-1, -1), 'RIGHT'),
+            ('FONTNAME', (0, 0), (-1, 0), f"{font_name}-Bold" if font_registered else "Helvetica-Bold"),
+            ('FONTNAME', (0, 1), (-1, -1), font_name), # Phông cho nội dung bảng
             ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8fafc")]), # Dòng kẻ xen kẽ
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8fafc")]),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
         ]))
