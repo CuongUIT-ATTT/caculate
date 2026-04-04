@@ -31,6 +31,11 @@ except Exception:
 try:
     from reportlab.lib.pagesizes import A4
     from reportlab.pdfgen import canvas
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
     HAS_REPORTLAB = True
 except Exception:
     HAS_REPORTLAB = False
@@ -338,25 +343,85 @@ def export(fmt: str):
 
     if fmt == 'pdf' and HAS_REPORTLAB:
         bytes_io = io.BytesIO()
-        c = canvas.Canvas(bytes_io, pagesize=A4)
-        w, h = A4
-        y = h - 40
-        c.setFont('Helvetica-Bold', 12)
-        c.drawString(40, y, f"Summary for {person} - {base_name}")
-        y -= 24
-        c.setFont('Helvetica', 10)
-        c.drawString(40, y, f"Totals: shared={filtered['totals']['total_shared']} paid={filtered['totals']['total_paid_by_person']} remaining={filtered['totals']['remaining']}")
-        y -= 24
-        c.drawString(40, y, 'Shared rows:')
-        y -= 18
+        
+        # Đăng ký phông chữ tiếng Việt (Arial từ Windows)
+        font_path = "C:\\Windows\\Fonts\\arial.ttf"
+        font_name = "Arial"
+        if not os.path.exists(font_path):
+             # Fallback nếu không chạy trên Windows hoặc không tìm thấy font
+             font_name = "Helvetica"
+        else:
+             pdfmetrics.registerFont(TTFont('Arial', font_path))
+             pdfmetrics.registerFont(TTFont('Arial-Bold', "C:\\Windows\\Fonts\\arialbd.ttf"))
+
+        doc = SimpleDocTemplate(bytes_io, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        # Tiêu đề báo cáo
+        title_style = ParagraphStyle(
+            'TitleStyle',
+            parent=styles['Heading1'],
+            fontName=f"{font_name}-Bold" if font_name == "Arial" else "Helvetica-Bold",
+            fontSize=18,
+            alignment=1, # Center
+            spaceAfter=20
+        )
+        elements.append(Paragraph(f"Báo cáo Thu Chi - {person}", title_style))
+        elements.append(Paragraph(f"File nguồn: {base_name}", styles['Normal']))
+        elements.append(Spacer(1, 12))
+
+        # Tóm tắt
+        summary_data = [
+            ["Phần liên quan", "Đã trả", "Còn nợ"],
+            [f"{filtered['totals']['total_shared']} VND", 
+             f"{filtered['totals']['total_paid_by_person']} VND", 
+             f"{filtered['totals']['remaining']} VND"]
+        ]
+        t_summary = Table(summary_data, colWidths=[160, 160, 160])
+        t_summary.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#3b82f6")),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), f"{font_name}-Bold" if font_name == "Arial" else "Helvetica-Bold"),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+            ('GRID', (0, 0), (-1, -1), 1, colors.grey)
+        ]))
+        elements.append(t_summary)
+        elements.append(Spacer(1, 24))
+
+        # Chi tiết phần liên quan
+        elements.append(Paragraph("Chi tiết phần liên quan", styles['Heading2']))
+        data = [["Ngày", "Hạng mục", "Ghi chú", "Amount", "Share"]]
         for r in filtered['shared_rows']:
-            line = f"{r['date']} | {r['category']} | {r['note'] or ''} | amt:{r['amount']} | share:{r['share']}"
-            c.drawString(40, y, line[:120])
-            y -= 14
-            if y < 80:
-                c.showPage()
-                y = h - 40
-        c.save()
+            data.append([
+                r['date'], 
+                r['category'], 
+                r['note'] or '', 
+                r['amount'], 
+                r['share']
+            ])
+        
+        # Cấu hình chiều rộng cột
+        t_shared = Table(data, colWidths=[70, 100, 180, 80, 80], repeatRows=1)
+        t_shared.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#0f172a")),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (3, 1), (-1, -1), 'RIGHT'), # Căn phải cột tiền
+            ('FONTNAME', (0, 0), (-1, 0), f"{font_name}-Bold" if font_name == "Arial" else "Helvetica-Bold"),
+            ('FONTNAME', (0, 1), (-1, -1), font_name), # Phông cho nội dung
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8fafc")]), # Dòng kẻ xen kẽ
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+        ]))
+        elements.append(t_shared)
+        
+        # Xây dựng PDF
+        doc.build(elements)
         bytes_io.seek(0)
         return send_file(bytes_io, as_attachment=True, download_name=f"{base_name}.{person}.summary.pdf", mimetype='application/pdf')
 
